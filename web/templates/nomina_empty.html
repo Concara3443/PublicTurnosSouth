@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}Sin datos de nómina{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>No hay datos de nómina para el periodo seleccionado</h2>
+    <p>No se encontraron turnos en el rango de fechas del {{ start_date }} al {{ end_date }}.</p>
+    <div class="back-link">
+        <a href="{{ url_for('nomina.nomina_form') }}">Volver</a>
+    </div>
+</div>
+{% endblock %}

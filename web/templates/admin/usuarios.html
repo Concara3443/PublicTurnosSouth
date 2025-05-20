@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Usuarios - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container admin-container">
+    <h2>Gestión de Usuarios</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('admin.nuevo_usuario') }}" class="btn">Nuevo Usuario</a>
+        <a href="{{ url_for('admin.panel') }}" class="btn secondary">Volver al Panel</a>
+    </div>
+    
+    <div class="user-list">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Último Acceso</th>
+                    <th>Estado</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.numero_empleado }}</td>
+                    <td>{{ usuario.nombre_completo }}</td>
+                    <td>{{ usuario.email or '-' }}</td>
+                    <td>
+                        {% if usuario.ultimo_acceso %}
+                            {{ usuario.ultimo_acceso.strftime('%d/%m/%Y %H:%M') }}
+                        {% else %}
+                            Nunca
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge {{ 'active' if usuario.activo else 'inactive' }}">
+                            {{ 'Activo' if usuario.activo else 'Inactivo' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="role-badge {{ 'admin' if usuario.es_admin else 'user' }}">
+                            {{ 'Administrador' if usuario.es_admin else 'Usuario' }}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        <a href="{{ url_for('admin.editar_usuario', usuario_id=usuario.id) }}" class="btn-icon edit-icon" title="Editar">✏️</a>
+                        
+                        <form method="POST" action="{{ url_for('admin.cambiar_estado', usuario_id=usuario.id) }}" class="inline-form" onsubmit="return confirm('¿Estás seguro de cambiar el estado de este usuario?');">
+                            <button type="submit" class="btn-icon {{ 'deactivate-icon' if usuario.activo else 'activate-icon' }}" title="{{ 'Desactivar' if usuario.activo else 'Activar' }}">
+                                {{ '🔴' if usuario.activo else '🟢' }}
+                            </button>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('admin.eliminar_usuario', usuario_id=usuario.id) }}" class="inline-form" onsubmit="return confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.');">
+                            <button type="submit" class="btn-icon delete-icon" title="Eliminar">❌</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="back-link">
+        <a href="{{ url_for('admin.panel') }}">Volver al Panel</a>
+    </div>
+</div>
+{% endblock %}

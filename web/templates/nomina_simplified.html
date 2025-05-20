@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block title %}Nóminas {{ start_date }} a {{ end_date }}{% endblock %}
+
+{% block content %}
+<h1>Nóminas del {{ start_date }} al {{ end_date }}</h1>
+
+<div class="back-link">
+    <a href="{{ url_for('nomina.nomina_form') }}">Elegir otro periodo</a> | 
+    <a href="{{ url_for('calendario.home') }}">Volver al calendario</a>
+</div>
+
+<h3 style="text-align: center;">Total líquido a percibir: {{ total_general|round(2) }} €</h3>
+
+{% for month_key, month_info in nomina_data.items() %}
+    {% set year, month = month_key %}
+    {% set month_data = month_info.data %}
+    {% set conceptos = month_data.conceptos %}
+    
+    <!-- Nómina para este mes -->
+    <div class="nomina-container" style="margin-bottom: 30px;">
+        <div class="nomina-header">
+            <div class="company-info">
+                <p><strong>Empresa:</strong> {{ company_info.nombre }}</p>
+                <p><strong>Domicilio:</strong> {{ company_info.domicilio }}</p>
+                <p><strong>C.I.F.:</strong> {{ company_info.cif }}</p>
+            </div>
+            <div class="employee-info">
+                <p><strong>Trabajador:</strong> {{ employee_info.nombre }}</p>
+                <p><strong>D.N.I.:</strong> {{ employee_info.dni }} <strong>N.Empleado:</strong> {{ employee_info.numero }}</p>
+                <p><strong>Departamento:</strong> {{ employee_info.departamento }}</p>
+            </div>
+        </div>
+        
+        <div class="nomina-total">
+            <p>TOTAL LÍQUIDO A TRANSFERIR: {{ month_info.liquido_percibir|round(2) }} €</p>
+        </div>
+        
+        <div class="nomina-period">
+            <p>Periodo de liquidación: {{ month_info.periodo_str }} &nbsp; Tipo de paga: {{ month_info.tipo_nomina }}</p>
+            <p>Periodo de cálculo de pluses: {{ month_info.pluses_start_str }} al {{ month_info.pluses_end_str }}</p>
+        </div>
+        
+        <table class="nomina-detail">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Unidades</th>
+                    <th>Tarifa/Bases</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- DEVENGOS -->
+                <tr class="devengos">
+                    <td colspan="4" style="background-color:#e9e9e9; font-weight:bold;">DEVENGOS</td>
+                </tr>
+                
+                <!-- Sueldo Base -->
+                {% set sueldo_base = conceptos.SE001 %}
+                {% if sueldo_base.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('SE001', {{ month }}, {{ year }})">{{ sueldo_base.nombre }}</span></td>
+                        <td style="text-align:right;">{{ (sueldo_base.horas * 0.175)|round(2) }}</td>
+                        <td style="text-align:right;">{{ sueldo_base.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ sueldo_base.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Plus Jornada Partida -->
+                {% set plus_jornada = conceptos.SE013 %}
+                {% if plus_jornada.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('SE013', {{ month }}, {{ year }})">{{ plus_jornada.nombre }}</span></td>
+                        <td style="text-align:right;">{{ plus_jornada.unidades|round(2) }}</td>
+                        <td style="text-align:right;">{{ plus_jornada.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ plus_jornada.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Plus Domingo -->
+                {% set plus_domingo = conceptos.SE023 %}
+                {% if plus_domingo.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('SE023', {{ month }}, {{ year }})">{{ plus_domingo.nombre }}</span></td>
+                        <td style="text-align:right;">{{ plus_domingo.horas|round(2) }}</td>
+                        <td style="text-align:right;">{{ plus_domingo.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ plus_domingo.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Gastos Transporte -->
+                {% set transporte = conceptos.SE055 %}
+                {% if transporte.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('SE055', {{ month }}, {{ year }})">{{ transporte.nombre }}</span></td>
+                        <td style="text-align:right;"></td>
+                        <td style="text-align:right;"></td>
+                        <td style="text-align:right;">{{ transporte.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Plus Nocturnidad -->
+                {% set nocturnidad = conceptos.SE106 %}
+                {% if nocturnidad.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('SE106', {{ month }}, {{ year }})">{{ nocturnidad.nombre }}</span></td>
+                        <td style="text-align:right;">{{ nocturnidad.horas|round(2) }}</td>
+                        <td style="text-align:right;">{{ nocturnidad.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ nocturnidad.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Plus Madrugue -->
+                {% set madrugue = conceptos.SE126 %}
+                {% if madrugue.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('SE126', {{ month }}, {{ year }})">{{ madrugue.nombre }}</span></td>
+                        <td style="text-align:right;">{{ madrugue.horas|round(2) }}</td>
+                        <td style="text-align:right;">{{ madrugue.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ madrugue.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Festividad -->
+                {% set festividad = conceptos.festividad %}
+                {% if festividad.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('festividad', {{ month }}, {{ year }})">{{ festividad.nombre }}</span></td>
+                        <td style="text-align:right;">{{ festividad.horas|round(2) }}</td>
+                        <td style="text-align:right;">{{ festividad.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ festividad.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Dieta Comida -->
+                {% set comida = conceptos.comida %}
+                {% if comida.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('comida', {{ month }}, {{ year }})">{{ comida.nombre }}</span></td>
+                        <td style="text-align:right;">{{ comida.unidades|round(2) }}</td>
+                        <td style="text-align:right;">{{ comida.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ comida.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Dieta Cena -->
+                {% set cena = conceptos.cena %}
+                {% if cena.total > 0 %}
+                    <tr class="devengos">
+                        <td><span class="detail-link" onclick="showDetailModal('cena', {{ month }}, {{ year }})">{{ cena.nombre }}</span></td>
+                        <td style="text-align:right;">{{ cena.unidades|round(2) }}</td>
+                        <td style="text-align:right;">{{ cena.tarifa|round(2) }}</td>
+                        <td style="text-align:right;">{{ cena.total|round(2) }} €</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Total Devengado -->
+                <tr class="total-row">
+                    <td colspan="3" style="text-align:right;"><strong>TOTAL DEVENGADO</strong></td>
+                    <td style="text-align:right;"><strong>{{ month_info.total_devengado|round(2) }} €</strong></td>
+                </tr>
+                
+                <!-- DEDUCCIONES -->
+                <tr class="deducciones">
+                    <td colspan="4" style="background-color:#e9e9e9; font-weight:bold;">DEDUCCIONES</td>
+                </tr>
+                
+                <!-- IRPF -->
+                <tr class="deducciones">
+                    <td>Retención IRPF</td>
+                    <td style="text-align:right;">{{ (month_info.irpf_rate * 100)|round(2) }}%</td>
+                    <td style="text-align:right;">{{ month_info.total_devengado|round(2) }}</td>
+                    <td style="text-align:right;">{{ month_info.irpf_amount|round(2) }} €</td>
+                </tr>
+                
+                <!-- SS Contingencias Comunes -->
+                <tr class="deducciones">
+                    <td>Contingencias Comunes SS</td>
+                    <td style="text-align:right;">{{ (month_info.ss_cc_rate * 100)|round(2) }}%</td>
+                    <td style="text-align:right;">{{ month_info.ss_cc_base|round(2) }}</td>
+                    <td style="text-align:right;">{{ month_info.ss_cc_amount|round(2) }} €</td>
+                </tr>
+                
+                <!-- SS Desempleo -->
+                <tr class="deducciones">
+                    <td>Desempleo SS</td>
+                    <td style="text-align:right;">{{ (month_info.ss_d_rate * 100)|round(2) }}%</td>
+                    <td style="text-align:right;">{{ month_info.ss_cc_base|round(2) }}</td>
+                    <td style="text-align:right;">{{ month_info.ss_d_amount|round(2) }} €</td>
+                </tr>
+                
+                <!-- SS Formación Profesional -->
+                <tr class="deducciones">
+                    <td>Formación Profesional SS</td>
+                    <td style="text-align:right;">{{ (month_info.ss_fp_rate * 100)|round(2) }}%</td>
+                    <td style="text-align:right;">{{ month_info.ss_cc_base|round(2) }}</td>
+                    <td style="text-align:right;">{{ month_info.ss_fp_amount|round(2) }} €</td>
+                </tr>
+                
+                <!-- SS Contribución MEI -->
+                <tr class="deducciones">
+                    <td>SS Contribución MEI</td>
+                    <td style="text-align:right;">{{ (month_info.ss_mei_rate * 100)|round(2) }}%</td>
+                    <td style="text-align:right;">{{ month_info.ss_cc_base|round(2) }}</td>
+                    <td style="text-align:right;">{{ month_info.ss_mei_amount|round(2) }} €</td>
+                </tr>
+                
+                <!-- Total Deducciones -->
+                <tr class="total-row">
+                    <td colspan="3" style="text-align:right;"><strong>TOTAL A DEDUCIR</strong></td>
+                    <td style="text-align:right;"><strong>{{ month_info.total_deducciones|round(2) }} €</strong></td>
+                </tr>
+                
+                <!-- Líquido a percibir -->
+                <tr class="total-row" style="font-size:1.1em;">
+                    <td colspan="3" style="text-align:right;"><strong>LÍQUIDO TOTAL A PERCIBIR</strong></td>
+                    <td style="text-align:right;"><strong>{{ month_info.liquido_percibir|round(2) }} €</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+            <div>
+                <p><strong>Firma y sello de la empresa:</strong></p>
+            </div>
+            <div>
+                <p>Madrid, {{ fecha_actual }}</p>
+                <p>Recibí</p>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+{% endblock %}

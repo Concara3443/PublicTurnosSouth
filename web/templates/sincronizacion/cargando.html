@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Sincronizando Turnos - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container loading-container">
+    <h2>Sincronizando tus turnos</h2>
+    
+    <div class="loading-box">
+        <div class="spinner"></div>
+        <p id="loading-message">Conectando con SITA y obteniendo tus turnos...</p>
+    </div>
+    
+    <div class="log-container">
+        <h3>Registro de sincronización</h3>
+        <div id="log-messages" class="log-messages"></div>
+    </div>
+    
+    <div id="error-message" class="alert danger" style="display: none;"></div>
+    
+    <div class="back-link" id="cancel-link">
+        <a href="{{ url_for('calendario.home') }}">Cancelar</a>
+    </div>
+</div>
+
+<style>
+.loading-container {
+    text-align: center;
+}
+
+.loading-box {
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 400px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 20px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #007acc;
+    border-radius: 50%;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#loading-message {
+    font-size: 16px;
+    color: #555;
+}
+
+.log-container {
+    margin: 20px auto;
+    max-width: 600px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+.log-messages {
+    height: 200px;
+    overflow-y: auto;
+    background-color: #111;
+    color: #0f0;
+    font-family: monospace;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: left;
+    white-space: pre-wrap;
+}
+
+.log-message {
+    margin: 4px 0;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const errorMessage = document.getElementById('error-message');
+    const loadingMessage = document.getElementById('loading-message');
+    const cancelLink = document.getElementById('cancel-link');
+    const logMessages = document.getElementById('log-messages');
+    
+    // Función para añadir mensajes al registro
+    function addLogMessage(message) {
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-message';
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logMessages.appendChild(logEntry);
+        logMessages.scrollTop = logMessages.scrollHeight;
+    }
+    
+    // Añadir mensajes iniciales
+    addLogMessage("Iniciando proceso de sincronización...");
+    addLogMessage("Conectando con la API de SITA...");
+    
+    // Iniciar la sincronización mediante AJAX
+    fetch('{{ url_for("sincronizacion.api_sincronizar") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar logs de éxito
+            if (data.logs && Array.isArray(data.logs)) {
+                data.logs.forEach(log => addLogMessage(log));
+            } else {
+                addLogMessage("Sincronización completada correctamente");
+            }
+            
+            addLogMessage(`Se actualizaron ${data.updated_days || 0} días con turnos`);
+            addLogMessage("Redirigiendo al calendario...");
+            
+            loadingMessage.textContent = data.message;
+            setTimeout(() => {
+                window.location.href = data.redirect_url;
+            }, 2000);
+        } else {
+            // Mostrar error
+            errorMessage.textContent = data.message;
+            errorMessage.style.display = 'block';
+            loadingMessage.textContent = 'Se produjo un error durante la sincronización.';
+            
+            addLogMessage(`ERROR: ${data.message}`);
+            
+            if (data.logs && Array.isArray(data.logs)) {
+                data.logs.forEach(log => addLogMessage(log));
+            }
+            
+            cancelLink.innerHTML = '<a href="{{ url_for("calendario.home") }}">Volver al calendario</a>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        errorMessage.textContent = 'Error de conexión. Intenta de nuevo más tarde.';
+        errorMessage.style.display = 'block';
+        loadingMessage.textContent = 'No se pudo completar la sincronización.';
+        
+        addLogMessage(`ERROR DE CONEXIÓN: ${error.message || 'Error desconocido'}`);
+        
+        cancelLink.innerHTML = '<a href="{{ url_for("calendario.home") }}">Volver al calendario</a>';
+    });
+});
+</script>
+{% endblock %}

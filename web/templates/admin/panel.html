@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel de Administración - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Panel de Administración</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="admin-menu">
+        <div class="admin-card">
+            <h3>Gestión de Usuarios</h3>
+            <p>Administra los usuarios del sistema, crea nuevas cuentas y gestiona los permisos.</p>
+            <a href="{{ url_for('admin.listar_usuarios') }}" class="btn">Administrar Usuarios</a>
+        </div>
+        
+        <div class="admin-card">
+            <h3>Lista Blanca de Empleados</h3>
+            <p>Administra qué empleados pueden registrarse en el sistema por sí mismos.</p>
+            <a href="{{ url_for('admin.whitelist') }}" class="btn">Gestionar Lista Blanca</a>
+        </div>
+
+        <div class="admin-card">
+            <h3>Estadísticas del Sistema</h3>
+            <p>Consulta estadísticas de uso del sistema.</p>
+            <a href="#" class="btn disabled">Ver Estadísticas</a>
+            <small>(Próximamente)</small>
+        </div>
+        
+        <div class="admin-card">
+            <h3>Configuración del Sistema</h3>
+            <p>Personaliza la configuración global del sistema.</p>
+            <a href="#" class="btn disabled">Configuración</a>
+            <small>(Próximamente)</small>
+        </div>
+    </div>
+    
+    <div class="back-link">
+        <a href="{{ url_for('calendario.home') }}">Volver al Calendario</a>
+    </div>
+</div>
+{% endblock %}

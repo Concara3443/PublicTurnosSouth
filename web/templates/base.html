@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Nóminas{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <h1>TurnosIbe</h1>
+            </div>
+                <div class="user-menu">
+                    {% if current_user.is_authenticated %}
+                        <span class="welcome-text">Bienvenido, {{ current_user.nombre_completo }}</span>
+                        {% if current_user.es_admin %}
+                        <a href="{{ url_for('admin.panel') }}" class="header-link">Panel Admin</a>
+                        {% endif %}
+                        <a href="{{ url_for('usuario.perfil') }}" class="header-link">Mi Perfil</a>
+                        <a href="{{ url_for('usuario.credenciales_sita') }}" class="header-link">Credenciales SITA</a>
+                        <a href="{{ url_for('auth.logout') }}" class="header-link">Cerrar Sesión</a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="header-link">Iniciar Sesión</a>
+                    {% endif %}
+                </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Modal para mostrar detalles de conceptos -->
+    <div id="detalleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3 id="modalTitle">Detalles del concepto</h3>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

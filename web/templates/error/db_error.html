@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Error de Conexión - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Error de Conexión a la Base de Datos</h2>
+    
+    <div class="error-message">
+        <p>Se ha producido un error al conectar con la base de datos. Esto puede deberse a:</p>
+        <ul>
+            <li>Problemas de conexión con el servidor</li>
+            <li>El servicio de base de datos está temporalmente inaccesible</li>
+            <li>Problemas de red o timeouts de conexión</li>
+        </ul>
+        
+        <p>Por favor, intenta lo siguiente:</p>
+        <ul>
+            <li>Recargar la página</li>
+            <li>Verificar tu conexión a internet</li>
+            <li>Intentar de nuevo más tarde</li>
+        </ul>
+    </div>
+    
+    <div class="back-link">
+        <a href="javascript:history.back()" class="btn">Volver</a>
+        <a href="{{ url_for('calendario.home') }}" class="btn secondary">Ir al Inicio</a>
+    </div>
+</div>
+
+<style>
+.error-message {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

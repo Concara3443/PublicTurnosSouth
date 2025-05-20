@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Agregar Empleado a la Lista Blanca - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Agregar Empleado a la Lista Blanca</h2>
+    
+    <p>
+        El empleado podrá registrarse en el sistema cuando acceda por primera vez
+        con su número de empleado.
+    </p>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <form method="POST" action="{{ url_for('admin.agregar_whitelist') }}">
+        <div class="form-group">
+            <label for="numero_empleado">Número de Empleado *</label>
+            <input type="text" id="numero_empleado" name="numero_empleado" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="nombre_completo">Nombre Completo</label>
+            <input type="text" id="nombre_completo" name="nombre_completo" class="form-control">
+            <small>Opcional. Se mostrará como sugerencia durante el registro.</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Correo Electrónico</label>
+            <input type="email" id="email" name="email" class="form-control">
+            <small>Opcional. Se mostrará como sugerencia durante el registro.</small>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn">Agregar a Lista Blanca</button>
+            <a href="{{ url_for('admin.whitelist') }}" class="btn secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

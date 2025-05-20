@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Rango de Fechas{% endblock %}
+
+{% block content %}
+<div class="nomina-container" style="max-width: 500px;">
+    <h2>Elige un Rango de Fechas</h2>
+    <div class="range-form">
+        <form action="{{ url_for('detalle.rango_view') }}" method="get">
+            <label for="start">Desde:</label>
+            <input type="date" id="start" name="start" required>
+            <label for="end">Hasta:</label>
+            <input type="date" id="end" name="end" required>
+            <button type="submit">Ver Rango</button>
+        </form>
+    </div>
+    <div class="back-link">
+        <a href="{{ url_for('calendario.home') }}">Volver al Calendario</a>
+    </div>
+</div>
+{% endblock %}

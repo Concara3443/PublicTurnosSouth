@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendario {{ month_name }} {{ year }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+    <h1>Calendario {{ month_name }} {{ year }}</h1>
+    
+    <div class="back-link">
+        <a href="{{ url_for('nomina.nomina_form') }}">Ver Nómina</a> | 
+        <a href="{{ url_for('detalle.rango_form') }}">Ver Rango de Fechas</a> | 
+        <a href="{{ url_for('simulador.simulador') }}">Simulador</a> |
+        <a href="{{ url_for('sincronizacion.sincronizar_turnos') }}">Sincronizar Turnos</a>
+    </div>
+    
+    <div class="back-link" style="margin-top: 10px;">
+        {% set prev_month = month-1 if month > 1 else 12 %}
+        {% set prev_year = year if month > 1 else year-1 %}
+        {% set next_month = month+1 if month < 12 else 1 %}
+        {% set next_year = year if month < 12 else year+1 %}
+        
+        <a href="{{ url_for('calendario.calendar_view', year=prev_year, month=prev_month) }}">« Mes anterior</a>
+        | 
+        <a href="{{ url_for('calendario.calendar_view', year=next_year, month=next_month) }}">Mes siguiente »</a>
+    </div>
+</div>
+
+<br>
+<h3>Total Mes: {{ monthly_total|round(2) }} € ({{ monthly_hours|round(1) }} horas)</h3>
+
+<div style="display: flex; justify-content: center;">
+    <table>
+        <tr>
+            <th>Lun</th>
+            <th>Mar</th>
+            <th>Mié</th>
+            <th>Jue</th>
+            <th>Vie</th>
+            <th>Sáb</th>
+            <th>Dom</th>
+            <th>Semana</th>
+        </tr>
+        
+        {% for week in weeks %}
+            <tr>
+                {% set iso_week = week[0].isocalendar()[1] %}
+                {% set weekly_total = weekly_map.get(iso_week, 0) %}
+                {% set weekly_hours = weekly_hours_map.get(iso_week, 0) %}
+                
+                {% for day in week %}
+                    {% set day_str = day.strftime('%Y-%m-%d') %}
+                    {% set details = daily_map.get(day_str, {'total': 0, 'shifts': [], 'hours': 0}) %}
+                    {% set salary = details.total %}
+                    {% set hours = details.hours %}
+                    
+                    {% set is_today = day.year == today.year and day.month == today.month and day.day == today.day %}
+                    {% set cell_color = 'lightgreen' if is_today else ('lightblue' if salary > 0 else '#f0f0f0') %}
+                    {% set opacity = '1' if day.month == month else '0.6' %}
+                    
+                    <td style="background-color:{{ cell_color }}; opacity:{{ opacity }}; {% if is_today %}border: 2px solid #28a745;{% endif %}">
+                        <a href="{{ url_for('detalle.day_detail', year=day.year, month=day.month, day=day.day) }}" style="text-decoration:none; color:black;">
+                            {{ day.day }}<br>{{ salary|round(2) }} €<br>{{ hours|round(1) }}h
+                        </a>
+                    </td>
+                {% endfor %}
+                
+                <td>{{ weekly_total|round(2) }} €<br>{{ weekly_hours|round(1) }}h</td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% if not has_any_shifts %}
+<div class="no-shifts-warning">
+    <p>No tienes turnos sincronizados para este mes. 
+       <a href="{{ url_for('sincronizacion.sincronizar_turnos') }}">Haz clic aquí para sincronizar</a>.
+    </p>
+</div>
+{% endif %}
+
+<style>
+.no-shifts-warning {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 5px;
+    text-align: center;
+}
+</style>
+{% endblock %}

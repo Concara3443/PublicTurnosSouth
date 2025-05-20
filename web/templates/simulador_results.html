@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Simulación para {{ day_date.strftime('%Y-%m-%d') }}{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Simulación para el {{ day_date.strftime('%Y-%m-%d') }}</h2>
+    
+    {% set formatted_date = day_date.strftime('%d de %B de %Y') %}
+    {% for eng, esp in month_translation.items() %}
+        {% set formatted_date = formatted_date.replace(eng, esp) %}
+    {% endfor %}
+    
+    {% set jornada_partida = shifts|length > 1 %}
+    
+    {% for idx, turno in enumerate(shifts, start=1) %}
+        {% set inicio = turno.start|replace('Z', '+00:00')|fromisoformat %}
+        {% set fin = turno.end|replace('Z', '+00:00')|fromisoformat %}
+        
+        {% set inicio_str = inicio.strftime('%H:%M') %}
+        {% set fin_str = fin.strftime('%H:%M') %}
+        
+        {% if fin.date() > inicio.date() %}
+            {% set fin_str = fin_str + ' (día siguiente)' %}
+        {% endif %}
+        
+        {% set total_horas = ((fin - inicio).total_seconds() / 3600)|round(2) %}
+        {% set sueldo_base = total_horas * tarifas.precio_hora %}
+        
+        <div style="margin-bottom:10px; border:1px solid #ccc; padding:5px; background:#fff; border-radius:5px;">
+            <strong>Turno {{ idx }}:</strong> {{ inicio_str }} - {{ fin_str }}<br>
+            
+            <ul>
+                <li>Sueldo Base: {{ total_horas }}h x {{ tarifas.precio_hora|round(2) }}€ = {{ sueldo_base|round(2) }} €</li>
+                
+                <li>Pluses:</li>
+                <ul style='margin-left:20px;'>
+                    {% set count_madrugue = 0 %}
+                    {% set count_nocturnidad = 0 %}
+                    {% set count_festividad = 0 %}
+                    {% set count_domingo = 0 %}
+                    
+                    {% set hora_iter = inicio %}
+                    {% while hora_iter < fin %}
+                        {% set current_date = hora_iter.strftime('%Y-%m-%d') %}
+                        
+                        {% if current_date in dias_festivos %}
+                            {% set count_festividad = count_festividad + 1 %}
+                        {% endif %}
+                        
+                        {% if hora_iter.weekday() == 6 %}
+                            {% set count_domingo = count_domingo + 1 %}
+                        {% endif %}
+                        
+                        {% if 4 <= hora_iter.hour < 7 %}
+                            {% set count_madrugue = count_madrugue + 1 %}
+                        {% elif hora_iter.hour >= 22 or hora_iter.hour < 4 %}
+                            {% set count_nocturnidad = count_nocturnidad + 1 %}
+                        {% endif %}
+                        
+                        {% set hora_iter = hora_iter + timedelta(hours=1) %}
+                    {% endwhile %}
+                    
+                    {% set plus_madrugue_total = tarifas.plus_madrugue * count_madrugue %}
+                    {% set plus_nocturnidad_total = tarifas.plus_nocturnidad * count_nocturnidad %}
+                    {% set plus_festividad_total = tarifas.plus_festividad * count_festividad %}
+                    {% set plus_domingo_total = tarifas.plus_domingo * count_domingo %}
+                    
+                    {% if count_madrugue > 0 %}
+                        <li>Plus Madrugue: {{ count_madrugue }}h x {{ tarifas.plus_madrugue|round(2) }}€ = {{ plus_madrugue_total|round(2) }} €</li>
+                    {% endif %}
+                    
+                    {% if count_nocturnidad > 0 %}
+                        <li>Plus Nocturnidad: {{ count_nocturnidad }}h x {{ tarifas.plus_nocturnidad|round(2) }}€ = {{ plus_nocturnidad_total|round(2) }} €</li>
+                    {% endif %}
+                    
+                    {% if count_festividad > 0 %}
+                        <li>Plus Festividad: {{ count_festividad }}h x {{ tarifas.plus_festividad|round(2) }}€ = {{ plus_festividad_total|round(2) }} €</li>
+                    {% endif %}
+                    
+                    {% if count_domingo > 0 %}
+                        <li>Plus Domingo: {{ count_domingo }}h x {{ tarifas.plus_domingo|round(2) }}€ = {{ plus_domingo_total|round(2) }} €</li>
+                    {% endif %}
+                    
+                    {% set plus_fijos = 0 %}
+                    
+                    {% if idx == 1 %}
+                        {% if jornada_partida %}
+                            {% set plus_fijos = plus_fijos + tarifas.plus_jornada_partida %}
+                            <li>Plus Jornada Partida: {{ tarifas.plus_jornada_partida|round(2) }} €</li>
+                        {% endif %}
+                        
+                        {% set plus_fijos = plus_fijos + tarifas.plus_transporte %}
+                        <li>Plus Transporte: {{ tarifas.plus_transporte|round(2) }} €</li>
+                    {% endif %}
+                    
+                    {% set dietas = 0 %}
+                    
+                    {% if inicio.hour <= 14 and fin.hour >= 16 and total_horas >= 6 %}
+                        {% set dietas = dietas + tarifas.dieta_comida %}
+                        <li>Dieta Comida: {{ tarifas.dieta_comida|round(2) }} €</li>
+                    {% endif %}
+                    
+                    {% if inicio.hour <= 21 and fin.hour >= 23 and total_horas >= 6 %}
+                        {% set dietas = dietas + tarifas.dieta_cena %}
+                        <li>Dieta Cena: {{ tarifas.dieta_cena|round(2) }} €</li>
+                    {% endif %}
+                    
+                    {% set total_pluses = plus_madrugue_total + plus_nocturnidad_total + plus_festividad_total + plus_domingo_total + plus_fijos %}
+                </ul>
+                
+                <li>Suma pluses: {{ total_pluses|round(2) }} €</li>
+                <li>Dietas: {{ dietas|round(2) }} €</li>
+                
+                {% set total_turno = sueldo_base + total_pluses + dietas %}
+                <li><strong>Total Turno: {{ total_turno|round(2) }} €</strong></li>
+            </ul>
+        </div>
+    {% endfor %}
+    
+    <h3>Total del Día: {{ total_day|round(2) }} €</h3>
+    
+    <div class="back-link">
+        <a href="{{ url_for('simulador.simulador') }}">Volver al Simulador</a>
+    </div>
+</div>
+{% endblock %}

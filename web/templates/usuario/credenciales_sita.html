@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Credenciales SITA - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Credenciales SITA</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="info-box">
+        <h3>Información Importante</h3>
+        <p>Configura tus credenciales de SITA para sincronizar tus turnos automáticamente.</p>
+        <p>Estas credenciales son las mismas que utilizas para acceder al sistema SITA.</p>
+        <p>Si no conoces tus credenciales o tienes problemas, contacta con tu supervisor.</p>
+    </div>
+    
+    <form method="POST" action="{{ url_for('usuario.credenciales_sita') }}">
+        <div class="form-group">
+            <label for="sita_username">Usuario SITA</label>
+            <input type="text" id="sita_username" name="sita_username" 
+                   class="form-control" value="{{ credenciales.sita_username if credenciales else current_user.numero_empleado }}" required>
+            <small>Normalmente es tu número de empleado.</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="sita_password">Contraseña SITA</label>
+            <input type="password" id="sita_password" name="sita_password" 
+                   class="form-control" value="{{ credenciales.sita_password if credenciales else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="site_id">Site ID</label>
+            <input type="text" id="site_id" name="site_id" 
+                   class="form-control" value="{{ credenciales.site_id if credenciales else '6217b877-fc01-11ea-b482-b7cd5987d781' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="cvation_tenantid">Cvation Tenant ID</label>
+            <input type="text" id="cvation_tenantid" name="cvation_tenantid" 
+                   class="form-control" value="{{ credenciales.cvation_tenantid if credenciales else 'ddf75f3a-856d-44b0-a881-a0f991cfa68f' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="roster_url">URL del Roster</label>
+            <input type="text" id="roster_url" name="roster_url" 
+                   class="form-control" value="{{ credenciales.roster_url if credenciales else 'https://sitaess-prod-frontdoor.azurefd.net/api/v1/rosters/baseline/CALENDARIO%20VISIBLE%20AL%20EMPLEADO/' + current_user.numero_empleado }}" required>
+            <small>URL de tu roster en SITA.</small>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn">Guardar Credenciales</button>
+        </div>
+    </form>
+    
+    <div class="tips-box">
+        <h3>Consejos si tienes problemas:</h3>
+        <ul>
+            <li>Verifica que tu número de empleado sea correcto</li>
+            <li>Asegúrate de escribir la contraseña de SITA correctamente</li>
+            <li>Si has cambiado recientemente tu contraseña de SITA, actualízala aquí también</li>
+            <li>El error 401 significa "No autorizado" - revisa tus credenciales</li>
+        </ul>
+    </div>
+    
+    <div class="back-link">
+        <a href="{{ url_for('usuario.perfil') }}">Volver a Mi Perfil</a>
+    </div>
+</div>
+
+<style>
+.info-box {
+    background-color: #e6f7ff;
+    border-left: 4px solid #1890ff;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.tips-box {
+    background-color: #f9f0ff;
+    border-left: 4px solid #722ed1;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

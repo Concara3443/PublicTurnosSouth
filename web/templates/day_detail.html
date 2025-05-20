@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle del {{ day_date }}{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Desglose del {{ day_date.strftime('%Y-%m-%d') }}</h2>
+    
+    {% if turnos_desglose %}
+        {% for turno in turnos_desglose %}
+            <div style="margin-bottom:10px; border:1px solid #ccc; padding:5px; background:#fff; border-radius:5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <strong>Turno {{ turno.idx }}:</strong><br>
+                Inicio: {{ turno.inicio.strftime('%d/%m/%Y %H:%M') }}<br>
+                Fin: {{ turno.fin.strftime('%d/%m/%Y %H:%M') }}<br>
+                
+                <ul>
+                    <li>Sueldo Base: {{ turno.total_horas|round(2) }} horas x {{ tarifas.precio_hora|round(2) }} €/hr = {{ turno.sueldo_base|round(2) }} €</li>
+                    
+                    <li>Pluses:</li>
+                    <ul style='margin-left:20px;'>
+                        {% if turno.contadores.madrugue > 0 %}
+                            <li>Plus Madrugue: {{ turno.contadores.madrugue }} hora(s) x {{ tarifas.plus_madrugue|round(2) }} €/hr = {{ turno.plus_importes.madrugue|round(2) }} €</li>
+                        {% endif %}
+                        
+                        {% if turno.contadores.nocturnidad > 0 %}
+                            <li>Plus Nocturnidad: {{ turno.contadores.nocturnidad }} hora(s) x {{ tarifas.plus_nocturnidad|round(2) }} €/hr = {{ turno.plus_importes.nocturnidad|round(2) }} €</li>
+                        {% endif %}
+                        
+                        {% if turno.contadores.festividad > 0 %}
+                            <li>Plus Festividad: {{ turno.contadores.festividad }} hora(s) x {{ tarifas.plus_festividad|round(2) }} €/hr = {{ turno.plus_importes.festividad|round(2) }} €</li>
+                        {% endif %}
+                        
+                        {% if turno.contadores.domingo > 0 %}
+                            <li>Plus Domingo: {{ turno.contadores.domingo }} hora(s) x {{ tarifas.plus_domingo|round(2) }} €/hr = {{ turno.plus_importes.domingo|round(2) }} €</li>
+                        {% endif %}
+                        
+                        {% if turno.plus_fijos.jornada_partida is defined %}
+                            <li>Plus Jornada Partida: 1 = {{ tarifas.plus_jornada_partida|round(2) }} €</li>
+                        {% endif %}
+                        
+                        {% if turno.plus_fijos.transporte is defined %}
+                            <li>Plus Transporte: 1 = {{ tarifas.plus_transporte|round(2) }} €</li>
+                        {% endif %}
+                    </ul>
+                    
+                    <li>Suma pluses: {{ turno.total_pluses|round(2) }} €</li>
+                    
+                    <li>Dietas: {{ turno.total_dietas|round(2) }} €</li>
+                    
+                    {% if turno.dietas.comida is defined %}
+                        <ul style='margin-left:20px;'>
+                            <li>Dieta Comida: 1 x {{ tarifas.dieta_comida|round(2) }} €/hr = {{ tarifas.dieta_comida|round(2) }} €</li>
+                        </ul>
+                    {% endif %}
+                    
+                    {% if turno.dietas.cena is defined %}
+                        <ul style='margin-left:20px;'>
+                            <li>Dieta Cena: 1 x {{ tarifas.dieta_cena|round(2) }} €/hr = {{ tarifas.dieta_cena|round(2) }} €</li>
+                        </ul>
+                    {% endif %}
+                    
+                    <li><strong>Total Turno: {{ turno.total_turno|round(2) }} €</strong></li>
+                </ul>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No hay turnos para este día.</p>
+    {% endif %}
+    
+    <h3>Total del día: {{ day_total|round(2) }} €</h3>
+    
+    <div class="back-link">
+        <a href="{{ url_for('calendario.calendar_view', year=day_date.year, month=day_date.month) }}">Volver al calendario</a>
+    </div>
+</div>
+{% endblock %}

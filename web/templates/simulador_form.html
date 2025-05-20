@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Simulador de Turnos{% endblock %}
+
+{% block content %}
+<div class="nomina-container simulator-page">
+    <h2>Simulador de Turnos</h2>
+    <p>Selecciona un día y define hasta 3 turnos para ver el sueldo y un desglose completo.</p>
+    
+    <form method="POST">
+        <label>Fecha: <input type="date" name="day_date" required value="{{ today }}"></label><br><br>
+        <div id="shifts-container"></div>
+        <button type="button" onclick="addShift()" class="range-form button">Añadir Turno</button><br><br>
+        <button type="submit" class="range-form button">Calcular</button>
+    </form>
+    
+    <div class="back-link">
+        <a href="{{ url_for('calendario.home') }}">Volver</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Añadir primer turno automáticamente al cargar
+    document.addEventListener('DOMContentLoaded', function() {
+        addShift();
+    });
+</script>
+{% endblock %}

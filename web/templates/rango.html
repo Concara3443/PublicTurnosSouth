@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Días en el Rango{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Días en el Rango {{ start_date.strftime('%Y-%m-%d') }} al {{ end_date.strftime('%Y-%m-%d') }}</h2>
+    
+    <div class="calendar-grid">
+        {% for item in salary_info %}
+            {% set day_str = item.date %}
+            {% set day_total = item.total %}
+            {% set shifts_count = item.shifts|length %}
+            
+            {% set day_date = day_str|strptime('%Y-%m-%d') %}
+            
+            <div class="day-square" style="background-color: {% if day_total > 0 %}#e6f7ff{% else %}#f5f5f5{% endif %};">
+                <strong>{{ day_str }}</strong><br>
+                Sueldo: {{ day_total|round(2) }} €<br>
+                <span style="font-size:0.8em;">{{ shifts_count }} turnos</span><br>
+                <a href="{{ url_for('detalle.day_detail', year=day_date.year, month=day_date.month, day=day_date.day) }}">Ver detalle</a>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <div class="total" style="margin-top: 20px; text-align: right;">
+        <strong>Sueldo Total en el Rango: {{ total_sum|round(2) }} €</strong>
+    </div>
+    
+    <div class="back-link">
+        <a href="{{ url_for('calendario.calendar_view', year=start_date.year, month=start_date.month) }}">Volver al calendario principal</a>
+    </div>
+</div>
+{% endblock %}

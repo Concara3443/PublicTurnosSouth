@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Seleccionar Periodo de Nómina{% endblock %}
+
+{% block content %}
+<div class="nomina-container" style="max-width: 500px;">
+    <h2>Selecciona el Periodo de Nómina</h2>
+    <div class="range-form">
+        <form action="{{ url_for('nomina.nomina_view') }}" method="get">
+            <label for="start_date">Fecha Inicio:</label>
+            <input type="date" id="start_date" name="start_date" value="{{ default_start }}" required>
+            <br><br>
+            <label for="end_date">Fecha Fin:</label>
+            <input type="date" id="end_date" name="end_date" value="{{ default_end }}" required>
+            <br><br>
+            <button type="submit">Ver Nómina</button>
+        </form>
+    </div>
+    <div class="back-link">
+        <a href="{{ url_for('calendario.home') }}">Volver al Calendario</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista Blanca de Empleados - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container admin-container">
+    <h2>Lista Blanca de Empleados</h2>
+    
+    <p>
+        Los empleados añadidos a esta lista podrán registrarse en el sistema
+        cuando accedan por primera vez con su número de empleado.
+    </p>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('admin.agregar_whitelist') }}" class="btn">Agregar Empleado</a>
+        <a href="{{ url_for('admin.panel') }}" class="btn secondary">Volver al Panel</a>
+    </div>
+    
+    <div class="user-list">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Fecha Añadido</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for empleado in empleados %}
+                <tr>
+                    <td>{{ empleado.numero_empleado }}</td>
+                    <td>{{ empleado.nombre_completo or '-' }}</td>
+                    <td>{{ empleado.email or '-' }}</td>
+                    <td>{{ empleado.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <span class="status-badge {{ 'active' if not empleado.registrado else 'inactive' }}">
+                            {{ 'Pendiente' if not empleado.registrado else 'Registrado' }}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        {% if not empleado.registrado %}
+                        <form method="POST" action="{{ url_for('admin.eliminar_whitelist', numero_empleado=empleado.numero_empleado) }}" class="inline-form" onsubmit="return confirm('¿Estás seguro de eliminar este empleado de la lista blanca?');">
+                            <button type="submit" class="btn-icon delete-icon" title="Eliminar">❌</button>
+                        </form>
+                        {% else %}
+                        <span class="btn-icon" title="Registrado">✓</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                
+                {% if not empleados %}
+                <tr>
+                    <td colspan="6" class="text-center">No hay empleados en la lista blanca.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="back-link">
+        <a href="{{ url_for('admin.panel') }}">Volver al Panel</a>
+    </div>
+</div>
+{% endblock %}
