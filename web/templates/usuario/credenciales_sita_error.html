@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Error de Validación SITA - TurnosIbe{% endblock %}
+
+{% block content %}
+<div class="nomina-container">
+    <h2>Error al Validar Credenciales SITA</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="error-box">
+        <h3>No se pudieron validar las credenciales</h3>
+        <p>No fue posible conectar con el servidor SITA para validar las credenciales. Esto puede deberse a:</p>
+        <ul>
+            <li>Problemas temporales en el servidor SITA</li>
+            <li>Problemas de conexión a Internet</li>
+            <li>Firewall o restricciones de red</li>
+        </ul>
+    </div>
+    
+    <div class="options-container">
+        <div class="option-box">
+            <h3>Opción 1: Guardar sin validar</h3>
+            <p>Puedes guardar tus credenciales sin validarlas. Esto te permitirá continuar, pero podrías tener problemas al sincronizar tus turnos si las credenciales no son correctas.</p>
+            
+            <form method="POST" action="{{ url_for('usuario.guardar_credenciales_sin_validar') }}">
+                <input type="hidden" name="sita_username" value="{{ form_data.sita_username }}">
+                <input type="hidden" name="sita_password" value="{{ form_data.sita_password }}">
+                <input type="hidden" name="site_id" value="{{ form_data.site_id }}">
+                <input type="hidden" name="cvation_tenantid" value="{{ form_data.cvation_tenantid }}">
+                <input type="hidden" name="roster_url" value="{{ form_data.roster_url }}">
+                
+                <div class="form-group">
+                    <button type="submit" class="btn secondary">Guardar sin validar</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="option-box">
+            <h3>Opción 2: Modificar credenciales</h3>
+            <p>Puedes volver y modificar tus credenciales para intentar nuevamente.</p>
+            
+            <div class="form-group">
+                <a href="{{ url_for('usuario.credenciales_sita') }}" class="btn">Volver y modificar</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <h3>Información Importante</h3>
+        <p>Si el problema persiste, es posible que el servidor SITA esté experimentando problemas temporales. Puedes intentar las siguientes alternativas:</p>
+        <ul>
+            <li>Esperar unos minutos e intentar nuevamente</li>
+            <li>Verificar tu conexión a Internet</li>
+            <li>Contactar con tu supervisor o con el administrador del sistema</li>
+        </ul>
+    </div>
+    
+    <div class="back-link">
+        <a href="{{ url_for('calendario.home') }}">Volver al Calendario</a>
+    </div>
+</div>
+
+<style>
+.error-box {
+    background-color: #fff1f0;
+    border-left: 4px solid #ff4d4f;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.info-box {
+    background-color: #e6f7ff;
+    border-left: 4px solid #1890ff;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.options-container {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.option-box {
+    flex: 1;
+    background-color: #fafafa;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.option-box h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+@media (max-width: 768px) {
+    .options-container {
+        flex-direction: column;
+    }
+}
+
+.btn.secondary {
+    background-color: #6c757d;
+}
+
+.btn.secondary:hover {
+    background-color: #5a6268;
+}
+</style>
+{% endblock %}
