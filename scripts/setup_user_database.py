@@ -38,6 +38,9 @@ def crear_tablas():
             ultimo_acceso TIMESTAMP NULL,
             activo TINYINT(1) DEFAULT 1,
             es_admin TINYINT(1) DEFAULT 0,
+            sincronizacion_en_progreso TINYINT(1) DEFAULT 0,
+            ultima_sincronizacion TIMESTAMP NULL,
+            ultimo_error_sincronizacion VARCHAR(500) NULL,
             INDEX idx_numero_empleado (numero_empleado),
             INDEX idx_activo (activo)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

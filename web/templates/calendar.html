@@ -5,12 +5,27 @@
 {% block content %}
 <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
     <h1>Calendario {{ month_name }} {{ year }}</h1>
+        
+    <div id="sync-indicator" class="sync-status">
+        <div class="spinner-small"></div> Verificando estado...
+    </div>
+
+    <div id="sync-notification" class="sync-notification" style="display: none;">
+        <div class="sync-message">
+            <span id="sync-notification-message"></span>
+            <button class="close-btn" onclick="document.getElementById('sync-notification').style.display='none'">×</button>
+        </div>
+        <div class="sync-actions">
+            <a href="{{ url_for('sincronizacion.iniciar_sincronizacion_bg') }}" class="sync-action">Reintentar Sincronización</a>
+            <a href="{{ url_for('usuario.credenciales_sita') }}" class="sync-action">Verificar Credenciales</a>
+        </div>
+    </div>
     
     <div class="back-link">
         <a href="{{ url_for('nomina.nomina_form') }}">Ver Nómina</a> | 
         <a href="{{ url_for('detalle.rango_form') }}">Ver Rango de Fechas</a> | 
         <a href="{{ url_for('simulador.simulador') }}">Simulador</a> |
-        <a href="{{ url_for('sincronizacion.sincronizar_turnos') }}">Sincronizar Turnos</a>
+        <a href="{{ url_for('sincronizacion.iniciar_sincronizacion_bg') }}">Sincronizar Turnos</a>
     </div>
     
     <div class="back-link" style="margin-top: 10px;">
@@ -28,64 +43,77 @@
 <br>
 <h3>Total Mes: {{ monthly_total|round(2) }} € ({{ monthly_hours|round(1) }} horas)</h3>
 
-<div style="display: flex; justify-content: center;">
-    <table>
-        <tr>
-            <th>Lun</th>
-            <th>Mar</th>
-            <th>Mié</th>
-            <th>Jue</th>
-            <th>Vie</th>
-            <th>Sáb</th>
-            <th>Dom</th>
-            <th>Semana</th>
-        </tr>
-        
-        {% for week in weeks %}
+<div class="calendar-container">
+    <div class="table-responsive">
+        <table class="calendar-table">
             <tr>
-                {% set iso_week = week[0].isocalendar()[1] %}
-                {% set weekly_total = weekly_map.get(iso_week, 0) %}
-                {% set weekly_hours = weekly_hours_map.get(iso_week, 0) %}
-                
-                {% for day in week %}
-                    {% set day_str = day.strftime('%Y-%m-%d') %}
-                    {% set details = daily_map.get(day_str, {'total': 0, 'shifts': [], 'hours': 0}) %}
-                    {% set salary = details.total %}
-                    {% set hours = details.hours %}
-                    
-                    {% set is_today = day.year == today.year and day.month == today.month and day.day == today.day %}
-                    {% set cell_color = 'lightgreen' if is_today else ('lightblue' if salary > 0 else '#f0f0f0') %}
-                    {% set opacity = '1' if day.month == month else '0.6' %}
-                    
-                    <td style="background-color:{{ cell_color }}; opacity:{{ opacity }}; {% if is_today %}border: 2px solid #28a745;{% endif %}">
-                        <a href="{{ url_for('detalle.day_detail', year=day.year, month=day.month, day=day.day) }}" style="text-decoration:none; color:black;">
-                            {{ day.day }}<br>{{ salary|round(2) }} €<br>{{ hours|round(1) }}h
-                        </a>
-                    </td>
-                {% endfor %}
-                
-                <td>{{ weekly_total|round(2) }} €<br>{{ weekly_hours|round(1) }}h</td>
+                <th>Lun</th>
+                <th>Mar</th>
+                <th>Mié</th>
+                <th>Jue</th>
+                <th>Vie</th>
+                <th>Sáb</th>
+                <th>Dom</th>
+                <th>Semana</th>
             </tr>
-        {% endfor %}
-    </table>
+            
+            {% for week in weeks %}
+                <tr>
+                    {% set iso_week = week[0].isocalendar()[1] %}
+                    {% set weekly_total = weekly_map.get(iso_week, 0) %}
+                    {% set weekly_hours = weekly_hours_map.get(iso_week, 0) %}
+                    
+                    {% for day in week %}
+                        {% set day_str = day.strftime('%Y-%m-%d') %}
+                        {% set details = daily_map.get(day_str, {'total': 0, 'shifts': [], 'hours': 0}) %}
+                        {% set salary = details.total %}
+                        {% set hours = details.hours %}
+                        
+                        {% set is_today = day.year == today.year and day.month == today.month and day.day == today.day %}
+                        {% set cell_color = 'lightgreen' if is_today else ('lightblue' if salary > 0 else '#f0f0f0') %}
+                        {% set opacity = '1' if day.month == month else '0.6' %}
+                        
+                        <td style="background-color:{{ cell_color }}; opacity:{{ opacity }}; {% if is_today %}border: 2px solid #28a745;{% endif %}">
+                            <a href="{{ url_for('detalle.day_detail', year=day.year, month=day.month, day=day.day) }}" style="text-decoration:none; color:black;">
+                                {{ day.day }}<br>{{ salary|round(2) }} €<br>{{ hours|round(1) }}h
+                            </a>
+                        </td>
+                    {% endfor %}
+                    
+                    <td>{{ weekly_total|round(2) }} €<br>{{ weekly_hours|round(1) }}h</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
 </div>
 
 {% if not has_any_shifts %}
 <div class="no-shifts-warning">
     <p>No tienes turnos sincronizados para este mes. 
-       <a href="{{ url_for('sincronizacion.sincronizar_turnos') }}">Haz clic aquí para sincronizar</a>.
+       <a href="{{ url_for('sincronizacion.iniciar_sincronizacion_bg') }}">Haz clic aquí para sincronizar</a>.
     </p>
+    
+    <div class="first-sync-notice">
+        <strong>Nota:</strong> La primera sincronización puede tardar varios minutos en completarse.
+        El proceso se ejecutará en segundo plano mientras puedes seguir navegando por la aplicación.
+        El calendario se actualizará automáticamente cuando la sincronización termine.
+    </div>
 </div>
 {% endif %}
+{% endblock %}
 
-<style>
-.no-shifts-warning {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #fff3cd;
-    border: 1px solid #ffeeba;
-    border-radius: 5px;
-    text-align: center;
-}
-</style>
+{% block extra_js %}
+<script>
+    // Asegurarse de que la verificación de estado de sincronización se inicia
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof checkSyncStatus === 'function') {
+            checkSyncStatus();
+        }
+        
+        // Asegurar que se añaden los indicadores de scroll
+        if (typeof addScrollIndicators === 'function') {
+            addScrollIndicators();
+        }
+    });
+</script>
 {% endblock %}

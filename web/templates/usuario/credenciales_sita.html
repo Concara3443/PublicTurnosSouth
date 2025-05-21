@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.status === 'ok') {
                 statusContainer.classList.add('online');
-                statusText.textContent = 'El servidor SITA está disponible.';
+                statusText.textContent = 'El servidor SITA está parcialmente disponible.';
             } else {
                 statusContainer.classList.add('offline');
                 statusText.textContent = data.message;

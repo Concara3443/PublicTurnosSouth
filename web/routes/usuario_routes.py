@@ -195,7 +195,7 @@ def check_servidor_sita():
     try:
         response = requests.get("https://sitaess-prod-frontdoor.azurefd.net", timeout=5)
         if response.status_code == 200:
-            return jsonify({"status": "ok", "message": "El servidor SITA está disponible"})
+            return jsonify({"status": "ok", "message": "El servidor SITA está parcialmente disponible"})
         else:
             return jsonify({"status": "error", "message": f"El servidor SITA respondió con código {response.status_code}"})
     except requests.exceptions.RequestException as e:

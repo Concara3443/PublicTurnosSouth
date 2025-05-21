@@ -4,15 +4,34 @@ from datetime import datetime, date, timedelta
 import json
 import time
 import os
+import threading
 from dotenv import load_dotenv
 
 # Cargar variables de entorno
 load_dotenv()
 
+# Variable local para almacenar conexiones por hilo
+_thread_local = threading.local()
+
 def get_db_connection(max_retries=3, retry_delay=2):
     """
     Establece conexión con la base de datos con reintentos
+    Cada hilo tiene su propia conexión para evitar problemas de concurrencia
     """
+    # Comprobar si ya existe una conexión para este hilo
+    if hasattr(_thread_local, 'connection'):
+        try:
+            # Verificar que la conexión sigue siendo válida
+            _thread_local.connection.ping(reconnect=True)
+            return _thread_local.connection
+        except:
+            # Si hay algún error, cerrar la conexión y crear una nueva
+            try:
+                _thread_local.connection.close()
+            except:
+                pass
+            
+    # Crear nueva conexión
     for attempt in range(max_retries):
         try:
             conn = pymysql.connect(
@@ -31,6 +50,9 @@ def get_db_connection(max_retries=3, retry_delay=2):
             with conn.cursor() as cursor:
                 cursor.execute("SELECT 1")
                 cursor.fetchone()
+            
+            # Guardar la conexión en la variable local del hilo
+            _thread_local.connection = conn
             return conn
         except pymysql.OperationalError as e:
             error_code = e.args[0]
@@ -44,6 +66,15 @@ def get_db_connection(max_retries=3, retry_delay=2):
         except Exception as e:
             print(f"Error inesperado al conectar a la base de datos: {e}")
             raise
+
+def close_db_connection():
+    """Cierra la conexión a la base de datos para el hilo actual"""
+    if hasattr(_thread_local, 'connection'):
+        try:
+            _thread_local.connection.close()
+            delattr(_thread_local, 'connection')
+        except:
+            pass
             
 # Decorador para manejo de errores en consultas a la base de datos
 def db_error_handler(max_retries=3, retry_delay=2):
@@ -87,11 +118,12 @@ def execute_query(query, params=None, fetchone=False, commit=False):
             return result
     except Exception as e:
         if conn:
-            conn.rollback()
+            try:
+                conn.rollback()
+            except:
+                pass
+        print(f"Error al ejecutar consulta: {e}")
         raise
-    finally:
-        if conn:
-            conn.close()
 
 # Mantener el resto de funciones existentes pero actualizarlas para usar el nuevo sistema
 def get_turnos_by_month(year, month):
@@ -171,90 +203,3 @@ def parse_turno_json(turno_data):
         return turno_data
     else:
         return []
-    
-# Implementación simple de pool de conexiones
-class ConnectionPool:
-    def __init__(self, max_connections=10):
-        self.max_connections = max_connections
-        self.connections = []
-        self.in_use = set()
-    
-    def get_connection(self):
-        """Obtiene una conexión del pool o crea una nueva"""
-        for i, conn in enumerate(self.connections):
-            if i not in self.in_use:
-                try:
-                    # Verificar que la conexión está activa
-                    with conn.cursor() as cursor:
-                        cursor.execute("SELECT 1")
-                        cursor.fetchone()
-                    
-                    # Marcar como en uso
-                    self.in_use.add(i)
-                    return conn, i
-                except:
-                    # La conexión está cerrada, crear una nueva
-                    self.connections[i] = get_db_connection()
-                    self.in_use.add(i)
-                    return self.connections[i], i
-        
-        # Si llegamos aquí, no hay conexiones disponibles
-        if len(self.connections) < self.max_connections:
-            # Crear una nueva conexión
-            conn = get_db_connection()
-            self.connections.append(conn)
-            idx = len(self.connections) - 1
-            self.in_use.add(idx)
-            return conn, idx
-        
-        # Si todas las conexiones están en uso, esperar y reintentar
-        time.sleep(0.5)
-        return self.get_connection()
-    
-    def release_connection(self, idx):
-        """Libera una conexión para que pueda ser reutilizada"""
-        if idx in self.in_use:
-            self.in_use.remove(idx)
-    
-    def close_all(self):
-        """Cierra todas las conexiones del pool"""
-        for conn in self.connections:
-            try:
-                conn.close()
-            except:
-                pass
-        self.connections = []
-        self.in_use = set()
-
-# Crear un pool global
-pool = ConnectionPool()
-
-# Y luego modificar la función execute_query para usar el pool
-def execute_query(query, params=None, fetchone=False, commit=False):
-    """Ejecuta una consulta de forma segura con manejo de errores y reconexión usando pool"""
-    conn = None
-    conn_idx = None
-    try:
-        conn, conn_idx = pool.get_connection()
-        with conn.cursor() as cursor:
-            cursor.execute(query, params)
-            
-            if fetchone:
-                result = cursor.fetchone()
-            else:
-                result = cursor.fetchall()
-                
-            if commit:
-                conn.commit()
-                
-            return result
-    except Exception as e:
-        if conn:
-            try:
-                conn.rollback()
-            except:
-                pass
-        raise
-    finally:
-        if conn_idx is not None:
-            pool.release_connection(conn_idx)

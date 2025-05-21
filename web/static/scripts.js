@@ -100,3 +100,275 @@ document.addEventListener('DOMContentLoaded', function() {
         addShift();
     }
 });
+
+/**
+ * Verifica el estado de sincronización y actualiza la interfaz
+ */
+function checkSyncStatus() {
+    fetch('/sincronizacion/estado')
+        .then(response => response.json())
+        .then(data => {
+            const syncIndicator = document.getElementById('sync-indicator');
+            
+            if (syncIndicator) {
+                if (data.en_progreso) {
+                    syncIndicator.innerHTML = '<div class="spinner-small"></div> Sincronizando turnos...';
+                    syncIndicator.className = 'sync-status in-progress';
+                    
+                    // Verificar de nuevo en 5 segundos
+                    setTimeout(checkSyncStatus, 5000);
+                } else {
+                    if (data.ultima_sincronizacion) {
+                        const fecha = new Date(data.ultima_sincronizacion);
+                        syncIndicator.innerHTML = 'Última sincronización: ' + fecha.toLocaleString();
+                        syncIndicator.className = 'sync-status complete';
+                        
+                        // Si la sincronización recién terminó, recargar la página
+                        if (data.recien_completado) {
+                            location.reload();
+                        }
+                    } else {
+                        syncIndicator.innerHTML = 'No se ha sincronizado';
+                        syncIndicator.className = 'sync-status none';
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error verificando estado de sincronización:', error);
+        });
+}
+
+// Iniciar verificación de estado cuando existe el indicador
+document.addEventListener('DOMContentLoaded', function() {
+    const syncIndicator = document.getElementById('sync-indicator');
+    if (syncIndicator) {
+        checkSyncStatus();
+    }
+});
+
+/**
+ * Añade un indicador de desplazamiento en dispositivos móviles
+ */
+function addSwipeIndicator() {
+    // Solo para dispositivos táctiles
+    if (window.matchMedia('(hover: none)').matches) {
+        const calendarContainers = document.querySelectorAll('.calendar-container');
+        
+        calendarContainers.forEach(container => {
+            // Verificar si el container necesita scroll
+            if (container.scrollWidth > container.clientWidth) {
+                // Añadir indicador solo si no existe ya
+                if (!container.querySelector('.swipe-indicator')) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'swipe-indicator';
+                    container.appendChild(indicator);
+                    
+                    // Ocultar el indicador después de que el usuario haga scroll
+                    container.addEventListener('scroll', function() {
+                        indicator.style.opacity = '0';
+                        indicator.style.transition = 'opacity 0.5s';
+                        
+                        // Eliminar después de la transición
+                        setTimeout(() => {
+                            if (indicator.parentNode) {
+                                indicator.parentNode.removeChild(indicator);
+                            }
+                        }, 500);
+                    }, { once: true });
+                }
+            }
+        });
+    }
+}
+
+// Ejecutar después de que el DOM esté cargado
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar estado de sincronización
+    const syncIndicator = document.getElementById('sync-indicator');
+    if (syncIndicator) {
+        checkSyncStatus();
+    }
+    
+    // Añadir indicador de desplazamiento
+    addSwipeIndicator();
+});
+
+// Añadir a web/static/scripts.js
+
+/**
+ * Añade elementos fijos para indicar scroll lateral
+ */
+/**
+ * Añade indicador de desplazamiento en dispositivos móviles (solo el icono, sin difuminado)
+ */
+function addScrollIndicators() {
+    // Solo para dispositivos táctiles
+    if (window.matchMedia('(hover: none)').matches) {
+        const calendarContainers = document.querySelectorAll('.calendar-container');
+        
+        calendarContainers.forEach(container => {
+            // Verificar si el container necesita scroll
+            if (container.scrollWidth > container.clientWidth) {
+                // Añadir indicador solo si no existe ya
+                if (!container.querySelector('.swipe-indicator')) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'swipe-indicator';
+                    container.appendChild(indicator);
+                    
+                    // Ocultar el indicador después de que el usuario haga scroll
+                    container.addEventListener('scroll', function() {
+                        indicator.style.opacity = '0';
+                        indicator.style.transition = 'opacity 0.5s';
+                        
+                        // Eliminar después de la transición
+                        setTimeout(() => {
+                            if (indicator.parentNode) {
+                                indicator.parentNode.removeChild(indicator);
+                            }
+                        }, 500);
+                    }, { once: true });
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Verifica el estado de sincronización y actualiza la interfaz
+ * con manejo de errores mejorado
+ */
+function checkSyncStatus() {
+    fetch('/sincronizacion/estado')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const syncIndicator = document.getElementById('sync-indicator');
+            const syncNotification = document.getElementById('sync-notification');
+            const syncNotificationMessage = document.getElementById('sync-notification-message');
+            
+            if (syncIndicator) {
+                if (data.error) {
+                    // Hubo un error al consultar el estado
+                    syncIndicator.innerHTML = 'Error al verificar estado';
+                    syncIndicator.className = 'sync-status error';
+                    
+                    if (syncNotification && syncNotificationMessage) {
+                        syncNotificationMessage.textContent = 'No se pudo verificar el estado de sincronización. Puede haber un problema con la conexión al servidor.';
+                        syncNotification.style.display = 'block';
+                    }
+                    
+                    // Reintentar en 10 segundos
+                    setTimeout(checkSyncStatus, 10000);
+                    return;
+                }
+                
+                if (data.en_progreso) {
+                    syncIndicator.innerHTML = '<div class="spinner-small"></div> Sincronizando turnos...';
+                    syncIndicator.className = 'sync-status in-progress';
+                    
+                    // Ocultar notificación si estaba visible
+                    if (syncNotification) {
+                        syncNotification.style.display = 'none';
+                    }
+                    
+                    // Verificar de nuevo en 5 segundos
+                    setTimeout(checkSyncStatus, 5000);
+                } else {
+                    if (data.ultima_sincronizacion) {
+                        const fecha = new Date(data.ultima_sincronizacion);
+                        syncIndicator.innerHTML = 'Última sincronización: ' + fecha.toLocaleString();
+                        syncIndicator.className = 'sync-status complete';
+                        
+                        // Si la sincronización recién terminó, recargar la página
+                        if (data.recien_completado) {
+                            location.reload();
+                        }
+                    } else {
+                        syncIndicator.innerHTML = 'No se ha sincronizado';
+                        syncIndicator.className = 'sync-status none';
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error verificando estado de sincronización:', error);
+            
+            // Actualizar la UI para indicar el error
+            const syncIndicator = document.getElementById('sync-indicator');
+            const syncNotification = document.getElementById('sync-notification');
+            const syncNotificationMessage = document.getElementById('sync-notification-message');
+            
+            if (syncIndicator) {
+                syncIndicator.innerHTML = 'Error de conexión';
+                syncIndicator.className = 'sync-status error';
+            }
+            
+            if (syncNotification && syncNotificationMessage) {
+                syncNotificationMessage.textContent = 'Error al conectar con el servidor. Por favor, verifica tu conexión a internet.';
+                syncNotification.style.display = 'block';
+            }
+            
+            // Reintentar en 10 segundos
+            setTimeout(checkSyncStatus, 10000);
+        });
+}
+
+/**
+ * Muestra una notificación de error de sincronización
+ */
+function showSyncError(message) {
+    const syncNotification = document.getElementById('sync-notification');
+    const syncNotificationMessage = document.getElementById('sync-notification-message');
+    
+    if (syncNotification && syncNotificationMessage) {
+        syncNotificationMessage.textContent = message;
+        syncNotification.style.display = 'block';
+    }
+}
+
+/**
+ * Obtiene el último error de sincronización y lo muestra si es necesario
+ */
+function checkSyncError() {
+    fetch('/sincronizacion/ultimo-error')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.hay_error && data.mensaje_error) {
+                showSyncError(data.mensaje_error);
+            }
+        })
+        .catch(error => {
+            console.error('Error al verificar errores de sincronización:', error);
+        });
+}
+
+// Modificar onDOMReady para incluir verificación de errores
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar estado de sincronización
+    const syncIndicator = document.getElementById('sync-indicator');
+    if (syncIndicator) {
+        if (typeof checkSyncStatus === 'function') {
+            checkSyncStatus();
+        }
+        
+        // Verificar si hay errores guardados
+        if (typeof checkSyncError === 'function') {
+            checkSyncError();
+        }
+    }
+    
+    // Añadir indicadores de scroll
+    if (typeof addScrollIndicators === 'function') {
+        addScrollIndicators();
+    }
+});

@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, redirect, url_for, flash, render_template
+import threading
+from flask import Blueprint, jsonify, redirect, url_for, flash, render_template, session
 from flask_login import login_required, current_user
 import requests
 import json
@@ -6,23 +7,231 @@ import time
 from datetime import datetime, timedelta
 import os
 from cryptography.fernet import Fernet
-from models.credencial_sita import CredencialSita  # Asegúrate de que esta importación es correcta
-from database import get_db_connection, execute_query
+from models.credencial_sita import CredencialSita
+from database import get_db_connection, execute_query, close_db_connection
 
+# Definir el blueprint aquí
 sincronizacion_bp = Blueprint('sincronizacion', __name__)
 
 @sincronizacion_bp.route('/sincronizar-turnos')
 @login_required
 def sincronizar_turnos():
-    """Sincroniza los turnos del usuario actual"""
+    """
+    Redirige a la sincronización en segundo plano 
+    (mantenemos esta ruta para compatibilidad con enlaces existentes)
+    """
+    flash('La sincronización ahora se ejecuta en segundo plano para mejorar tu experiencia.', 'info')
+    return redirect(url_for('sincronizacion.iniciar_sincronizacion_bg'))
+
+@sincronizacion_bp.route('/iniciar_sincronizacion_bg')
+@login_required
+def iniciar_sincronizacion_bg():
+    """Inicia la sincronización en segundo plano y redirige inmediatamente al calendario"""
     # Verificar si el usuario tiene credenciales SITA
     credenciales = CredencialSita.obtener_por_empleado(current_user.id)
     if not credenciales:
         flash('No tienes credenciales SITA configuradas. Por favor, configúralas primero.', 'warning')
         return redirect(url_for('usuario.credenciales_sita'))
     
-    # Renderizar página de carga que hará la petición AJAX
-    return render_template('sincronizacion/cargando.html')
+    # Verificar si ya hay una sincronización en curso
+    query = """
+        SELECT sincronizacion_en_progreso, ultima_sincronizacion
+        FROM empleados
+        WHERE id = %s
+    """
+    result = execute_query(query, (current_user.id,), fetchone=True)
+    
+    if result and result['sincronizacion_en_progreso']:
+        # Ya hay una sincronización en curso
+        flash('Hay una sincronización en curso. Por favor, espera a que termine.', 'info')
+        return redirect(url_for('calendario.home'))
+    
+    # Obtener el ID del usuario actual y credenciales antes de iniciar el hilo
+    empleado_id = current_user.id
+    
+    # Hacer una copia de las credenciales para pasarlas al hilo
+    # Esto evita problemas con el current_user en el hilo
+    credenciales_copia = credenciales.copy() if isinstance(credenciales, dict) else credenciales
+    
+    # Marcar como sincronización en progreso antes de iniciar el hilo
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                UPDATE empleados
+                SET sincronizacion_en_progreso = 1
+                WHERE id = %s
+            """, (empleado_id,))
+            conn.commit()
+    except Exception as e:
+        flash(f'Error al iniciar sincronización: {str(e)}', 'danger')
+        return redirect(url_for('calendario.home'))
+    finally:
+        conn.close()
+    
+    # Iniciar sincronización en un hilo separado
+    def sync_thread(user_id, user_credentials):
+        try:
+            # Ejecutar sincronización usando las credenciales pasadas
+            logs = []
+            
+            try:
+                # Obtener turnos desde SITA
+                turnos = obtener_turnos_sita(user_credentials)
+                
+                if turnos:
+                    # Insertar turnos en la base de datos
+                    insertar_turnos_en_bd(user_id, turnos)
+                    print(f"Sincronización completada para usuario ID {user_id}")
+                else:
+                    print(f"No se encontraron turnos para el usuario ID {user_id}")
+            except Exception as e:
+                print(f"Error durante la sincronización para usuario ID {user_id}: {e}")
+                # Guardar un registro del error en la base de datos para mostrar en la UI
+                try:
+                    conn = get_db_connection()
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            UPDATE empleados
+                            SET ultimo_error_sincronizacion = %s
+                            WHERE id = %s
+                        """, (str(e)[:500], user_id))  # Limitar a 500 caracteres
+                        conn.commit()
+                except:
+                    pass
+                finally:
+                    if conn:
+                        conn.close()
+                
+        except Exception as e:
+            print(f"Error en sincronización en segundo plano: {e}")
+        finally:
+            # Marcar como sincronización completada
+            try:
+                conn = get_db_connection()
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE empleados
+                        SET sincronizacion_en_progreso = 0,
+                            ultima_sincronizacion = NOW()
+                        WHERE id = %s
+                    """, (user_id,))
+                    conn.commit()
+            except Exception as e:
+                print(f"Error al actualizar estado de sincronización: {e}")
+            finally:
+                try:
+                    if conn:
+                        conn.close()
+                except:
+                    pass
+                # Asegurarnos de cerrar todas las conexiones de este hilo
+                close_db_connection()
+    
+    # Iniciar hilo de sincronización con el ID del usuario y sus credenciales
+    thread = threading.Thread(target=sync_thread, args=(empleado_id, credenciales_copia))
+    thread.daemon = True  # El hilo se cerrará cuando la aplicación principal termine
+    thread.start()
+    
+    # Redirigir inmediatamente al calendario
+    flash('Sincronización iniciada en segundo plano. El proceso puede tardar unos minutos en completarse, especialmente la primera vez.', 'info')
+    return redirect(url_for('calendario.home'))
+
+@sincronizacion_bp.route('/ultimo-error')
+@login_required
+def ultimo_error_sincronizacion():
+    """Devuelve el último error de sincronización registrado"""
+    try:
+        query = """
+            SELECT ultimo_error_sincronizacion
+            FROM empleados
+            WHERE id = %s
+        """
+        
+        result = execute_query(query, (current_user.id,), fetchone=True)
+        
+        if result and result['ultimo_error_sincronizacion']:
+            return jsonify({
+                'hay_error': True,
+                'mensaje_error': result['ultimo_error_sincronizacion']
+            })
+        
+        return jsonify({
+            'hay_error': False,
+            'mensaje_error': None
+        })
+    except Exception as e:
+        print(f"Error al obtener último error de sincronización: {str(e)}")
+        return jsonify({
+            'hay_error': False,
+            'mensaje_error': None,
+            'error_interno': str(e)
+        })
+
+# Añadir también ruta para limpiar errores
+
+@sincronizacion_bp.route('/limpiar-error')
+@login_required
+def limpiar_error_sincronizacion():
+    """Limpia el último error de sincronización registrado"""
+    try:
+        query = """
+            UPDATE empleados
+            SET ultimo_error_sincronizacion = NULL
+            WHERE id = %s
+        """
+        
+        execute_query(query, (current_user.id,), commit=True)
+        
+        return jsonify({
+            'success': True
+        })
+    except Exception as e:
+        print(f"Error al limpiar error de sincronización: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@sincronizacion_bp.route('/estado')
+@login_required
+def estado_sincronizacion():
+    """Devuelve el estado actual de sincronización del usuario"""
+    try:
+        # Obtener estado actual
+        query = """
+            SELECT sincronizacion_en_progreso, ultima_sincronizacion
+            FROM empleados
+            WHERE id = %s
+        """
+        
+        result = execute_query(query, (current_user.id,), fetchone=True)
+        
+        # Verificar si la sincronización acaba de completarse
+        recien_completado = False
+        
+        # Almacenar en la sesión si estaba en progreso
+        if 'sync_in_progress' in session:
+            if session['sync_in_progress'] and result and not result['sincronizacion_en_progreso']:
+                recien_completado = True
+            session['sync_in_progress'] = result['sincronizacion_en_progreso'] if result else False
+        else:
+            session['sync_in_progress'] = result['sincronizacion_en_progreso'] if result else False
+        
+        return jsonify({
+            'en_progreso': result['sincronizacion_en_progreso'] if result else False,
+            'ultima_sincronizacion': result['ultima_sincronizacion'].isoformat() if result and result['ultima_sincronizacion'] else None,
+            'recien_completado': recien_completado
+        })
+    except Exception as e:
+        # Si ocurre algún error, devolver un estado predeterminado
+        print(f"Error al obtener estado de sincronización: {str(e)}")
+        return jsonify({
+            'en_progreso': False,
+            'ultima_sincronizacion': None,
+            'recien_completado': False,
+            'error': True
+        })
 
 @sincronizacion_bp.route('/api/sincronizar', methods=['POST'])
 @login_required
