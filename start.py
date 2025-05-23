@@ -125,12 +125,7 @@ def start_services():
         ==========================================================================
         """)
         return False
-    
-    # Iniciar proceso de sincronización de calendario
-    calendar_process = subprocess.Popen([sys.executable, "calendar/index.py"])
-    processes.append(calendar_process)
-    logger.info(f"Servicio de calendario iniciado (PID: {calendar_process.pid})")
-    
+
     # Iniciar servidor web
     web_process = subprocess.Popen([sys.executable, "web/app.py"])
     processes.append(web_process)
@@ -185,13 +180,7 @@ def main():
                     logger.error(f"Proceso terminado inesperadamente con código {exit_code}")
                     processes.remove(proc)
                     
-                    # Reiniciar el proceso
-                    if "calendar/index.py" in proc.args:
-                        logger.info("Reiniciando servicio de calendario...")
-                        new_proc = subprocess.Popen([sys.executable, "calendar/index.py"])
-                        processes.append(new_proc)
-                        logger.info(f"Servicio de calendario reiniciado (PID: {new_proc.pid})")
-                    elif "web/app.py" in proc.args:
+                    if "web/app.py" in proc.args:
                         logger.info("Reiniciando servidor web...")
                         new_proc = subprocess.Popen([sys.executable, "web/app.py"])
                         processes.append(new_proc)
