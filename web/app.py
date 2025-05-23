@@ -105,4 +105,4 @@ if __name__ == '__main__':
     app = create_app()
     # Habilitar mensajes de depuración
     app.debug = True
-    app.run(host="0.0.0.0", port=int(os.getenv('APP_PORT', 5680)))
+    app.run(host="0.0.0.0", port=int(os.getenv('APP_PORT', 1234)))
