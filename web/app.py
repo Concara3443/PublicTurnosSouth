@@ -1,4 +1,5 @@
 from flask import Flask, render_template, redirect, url_for
+import ssl
 import os
 import calendar
 from datetime import datetime
@@ -102,7 +103,14 @@ def create_app():
 
 
 if __name__ == '__main__':
+    
+    cert_path = r'C:\CertificadosWeb\guillermocort.es-chain.pem'
+    key_path = r'C:\CertificadosWeb\guillermocort.es-key.pem'
+    
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert_path, key_path)
+    
     app = create_app()
     # Habilitar mensajes de depuración
     app.debug = True
-    app.run(host="0.0.0.0", port=int(os.getenv('APP_PORT', 1234)))
+    app.run(host="0.0.0.0", port=int(os.getenv('APP_PORT', 1234)), ssl_context=context)
