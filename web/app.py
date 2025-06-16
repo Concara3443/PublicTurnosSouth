@@ -1,11 +1,15 @@
+import threading
 from flask import Flask, render_template, redirect, url_for, request
 import ssl
 import os
 import calendar
+import atexit
 from datetime import datetime
 from flask_login import LoginManager
 import pymysql
 from werkzeug.middleware.proxy_fix import ProxyFix
+from auto_sync_manager import AutoSyncManager
+from routes.auto_sync_routes import auto_sync_bp, init_auto_sync_manager
 
 # Importar blueprints
 from routes import calendario_bp, nomina_bp, detalle_bp, simulador_bp, api_bp
@@ -99,6 +103,7 @@ def create_app():
     app.register_blueprint(detalle_bp)
     app.register_blueprint(simulador_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(auto_sync_bp)
     
     # Asegurar que exista la carpeta static
     if not os.path.exists(static_dir):
@@ -125,7 +130,45 @@ def create_app():
         print(f"Error de conexión a la base de datos: {error}")
         return render_template('error/db_error.html'), 500
     
+    def init_auto_sync():
+        """Inicializa el sistema de auto-sync"""
+        global auto_sync_manager
+        try:
+            auto_sync_manager = AutoSyncManager()
+            init_auto_sync_manager(auto_sync_manager)
+            
+            # Iniciar en un hilo separado para no bloquear Flask
+            def start_auto_sync_delayed():
+                import time
+                time.sleep(2)  # Esperar a que Flask esté completamente iniciado
+                with app.app_context():
+                    try:
+                        auto_sync_manager.start()
+                        app.logger.info("🚀 Sistema de sincronización automática iniciado")
+                    except Exception as e:
+                        app.logger.error(f"❌ Error al iniciar auto-sync: {e}")
+            
+            thread = threading.Thread(target=start_auto_sync_delayed, daemon=True)
+            thread.start()
+            
+        except Exception as e:
+            app.logger.error(f"❌ Error al configurar auto-sync: {e}")
+    
+    # Inicializar auto-sync después de crear la app
+    init_auto_sync()
+    
+    # Registrar función de limpieza al salir
+    def cleanup_auto_sync():
+        """Limpia el auto-sync al cerrar la aplicación"""
+        global auto_sync_manager
+        if auto_sync_manager and auto_sync_manager.running:
+            app.logger.info("🛑 Deteniendo auto-sync...")
+            auto_sync_manager.stop()
+    
+    atexit.register(cleanup_auto_sync)
+    
     return app
+
 
 # Para Waitress - app definido fuera de main
 app = create_app()

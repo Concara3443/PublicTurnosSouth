@@ -28,17 +28,9 @@
         </div>
 
         <div class="admin-card">
-            <h3>Estadísticas del Sistema</h3>
-            <p>Consulta estadísticas de uso del sistema.</p>
-            <a href="#" class="btn disabled">Ver Estadísticas</a>
-            <small>(Próximamente)</small>
-        </div>
-        
-        <div class="admin-card">
-            <h3>Configuración del Sistema</h3>
-            <p>Personaliza la configuración global del sistema.</p>
-            <a href="#" class="btn disabled">Configuración</a>
-            <small>(Próximamente)</small>
+            <h3>Sincronización Automática</h3>
+            <p>Controla y monitorea la sincronización automática de turnos para todos los usuarios del sistema.</p>
+            <a href="{{ url_for('auto_sync.panel_auto_sync') }}" class="btn">Gestionar Auto-Sync</a>
         </div>
     </div>
     
