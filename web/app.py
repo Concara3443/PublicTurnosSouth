@@ -1,10 +1,11 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 import ssl
 import os
 import calendar
 from datetime import datetime
 from flask_login import LoginManager
 import pymysql
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Importar blueprints
 from routes import calendario_bp, nomina_bp, detalle_bp, simulador_bp, api_bp
@@ -37,9 +38,34 @@ def create_app():
                 template_folder=template_dir,
                 static_folder=static_dir)
     
+    # IMPORTANTE: Configurar ProxyFix para manejar headers del proxy
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    
+    # Middleware personalizado para manejar el prefijo
+    class PrefixMiddleware:
+        def __init__(self, app, prefix=''):
+            self.app = app
+            self.prefix = prefix
+
+        def __call__(self, environ, start_response):
+            # Si hay X-Forwarded-Prefix, usar ese; si no, usar el configurado
+            forwarded_prefix = environ.get('HTTP_X_FORWARDED_PREFIX', self.prefix)
+            if forwarded_prefix:
+                # Guardar el prefijo en el environ para que Flask lo use
+                environ['SCRIPT_NAME'] = forwarded_prefix
+                # Quitar el prefijo del PATH_INFO si lo tiene
+                path_info = environ.get('PATH_INFO', '')
+                if path_info.startswith(forwarded_prefix):
+                    environ['PATH_INFO'] = path_info[len(forwarded_prefix):] or '/'
+            return self.app(environ, start_response)
+    
+    # Aplicar el middleware
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, '/south')
+    
     # Configuración de la aplicación
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_key_change_in_production')
     app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
     
     # Inicializar Flask-Login
     login_manager = LoginManager()
@@ -63,7 +89,7 @@ def create_app():
         date=datetime.date
     )
     
-    # Registrar blueprints - Asegurarse de que cada blueprint se registra solo una vez
+    # Registrar blueprints SIN prefijos (Nginx maneja el /south/)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(usuario_bp, url_prefix='/usuario')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -101,16 +127,16 @@ def create_app():
     
     return app
 
+# Para Waitress - app definido fuera de main
+app = create_app()
 
 if __name__ == '__main__':
-    
     cert_path = r'C:\CertificadosWeb\guillermocort.es-chain.pem'
     key_path = r'C:\CertificadosWeb\guillermocort.es-key.pem'
     
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(cert_path, key_path)
     
-    app = create_app()
     # Habilitar mensajes de depuración
     app.debug = True
     app.run(host="0.0.0.0", port=int(os.getenv('APP_PORT', 1234)), ssl_context=context)

@@ -2,10 +2,20 @@
  * Scripts para la aplicación de nóminas
  */
 
+// Detectar prefijo automáticamente basándose en la URL actual
+function getUrlPrefix() {
+    const path = window.location.pathname;
+    if (path.startsWith('/south/')) {
+        return '/south';
+    }
+    return '';
+}
+
 // Función para mostrar detalles de un concepto de nómina
 function showDetailModal(conceptoId, mes, anio) {
+    const prefix = getUrlPrefix();
     // Hacer una solicitud AJAX para obtener los detalles del concepto
-    fetch(`/api/detalle_concepto/${conceptoId}/${mes}/${anio}`)
+    fetch(`${prefix}/api/detalle_concepto/${conceptoId}/${mes}/${anio}`)
         .then(response => response.json())
         .then(data => {
             const modal = document.getElementById('detalleModal');
@@ -105,7 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
  * Verifica el estado de sincronización y actualiza la interfaz
  */
 function checkSyncStatus() {
-    fetch('/sincronizacion/estado')
+    const prefix = getUrlPrefix();
+    fetch(`${prefix}/sincronizacion/estado`)
         .then(response => response.json())
         .then(data => {
             const syncIndicator = document.getElementById('sync-indicator');
@@ -239,7 +250,8 @@ function addScrollIndicators() {
  * con manejo de errores mejorado
  */
 function checkSyncStatus() {
-    fetch('/sincronizacion/estado')
+    const prefix = getUrlPrefix();
+    fetch(`${prefix}/sincronizacion/estado`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Error en la respuesta del servidor');
@@ -335,7 +347,8 @@ function showSyncError(message) {
  * Obtiene el último error de sincronización y lo muestra si es necesario
  */
 function checkSyncError() {
-    fetch('/sincronizacion/ultimo-error')
+    const prefix = getUrlPrefix();
+    fetch(`${prefix}/sincronizacion/ultimo-error`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Error en la respuesta del servidor');
