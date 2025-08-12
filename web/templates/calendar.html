@@ -44,9 +44,9 @@
 <h3>Total Mes: {{ monthly_total|round(2) }} € ({{ monthly_hours|round(1) }} horas)</h3>
 
 <div class="view-toggle-container">
-    <button id="toggleViewBtn" class="toggle-btn" onclick="toggleCalendarView()">
+    <a href="#" id="toggleViewBtn" onclick="toggleCalendarView(); return false;">
         <span id="toggleText">Ver Turnos</span>
-    </button>
+    </a>
 </div>
 
 <div class="calendar-container">
