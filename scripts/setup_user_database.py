@@ -68,6 +68,7 @@ def crear_tablas():
             empleado_id INT NOT NULL,
             dia DATETIME NOT NULL,
             turno JSON NULL,
+            ausencias JSON NULL,
             activo TINYINT(1) DEFAULT 1,
             google_event_ids JSON NULL,
             fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -97,9 +98,9 @@ def crear_tablas():
         
         # Commit cambios
         conn.commit()
-        print("✅ Tablas creadas correctamente.")
+        print("Tablas creadas correctamente.")
     except Exception as e:
-        print(f"❌ Error al crear tablas: {e}")
+        print(f"Error al crear tablas: {e}")
         conn.rollback()
     finally:
         cursor.close()
@@ -114,7 +115,7 @@ def crear_usuario_admin():
         # Verificar si ya existe un admin
         cursor.execute("SELECT COUNT(*) FROM empleados WHERE es_admin = 1")
         if cursor.fetchone()[0] > 0:
-            print("ℹ️ Ya existe un usuario administrador.")
+            print("Ya existe un usuario administrador.")
             return
         
         # Pedir datos del nuevo administrador
@@ -129,7 +130,7 @@ def crear_usuario_admin():
             
             if password == confirm:
                 break
-            print("❌ Las contraseñas no coinciden. Inténtalo de nuevo.")
+            print("Las contraseñas no coinciden. Inténtalo de nuevo.")
         
         # Generar hash de la contraseña
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -144,9 +145,9 @@ def crear_usuario_admin():
         
         # Commit cambios
         conn.commit()
-        print(f"✅ Usuario administrador '{numero_empleado}' creado correctamente.")
+        print(f"Usuario administrador '{numero_empleado}' creado correctamente.")
     except Exception as e:
-        print(f"❌ Error al crear usuario administrador: {e}")
+        print(f"Error al crear usuario administrador: {e}")
         conn.rollback()
     finally:
         cursor.close()
@@ -163,7 +164,7 @@ def migrar_datos_existentes():
         admin = cursor.fetchone()
         
         if not admin:
-            print("❌ No se puede migrar datos sin un usuario admin. Crea uno primero.")
+            print("No se puede migrar datos sin un usuario admin. Crea uno primero.")
             return
         
         admin_id = admin[0]
@@ -183,7 +184,7 @@ def migrar_datos_existentes():
         """, (DB_CONFIG['database'],))
         
         if cursor.fetchone()[0] == 0:
-            print("ℹ️ La tabla turnos no existe, no hay datos que migrar.")
+            print("La tabla turnos no existe, no hay datos que migrar.")
             return
         
         # Obtener datos de la tabla turnos
@@ -191,7 +192,7 @@ def migrar_datos_existentes():
         turnos = cursor.fetchall()
         
         if not turnos:
-            print("ℹ️ No hay turnos activos para migrar.")
+            print("No hay turnos activos para migrar.")
             return
         
         # Insertar en turnos_empleado
@@ -205,9 +206,9 @@ def migrar_datos_existentes():
         
         # Commit cambios
         conn.commit()
-        print(f"✅ Se migraron {len(turnos)} turnos al usuario administrador.")
+        print(f"Se migraron {len(turnos)} turnos al usuario administrador.")
     except Exception as e:
-        print(f"❌ Error al migrar datos: {e}")
+        print(f"Error al migrar datos: {e}")
         conn.rollback()
     finally:
         cursor.close()
@@ -226,7 +227,7 @@ def main():
     # Migrar datos existentes
     migrar_datos_existentes()
     
-    print("\n✅ Configuración completada.")
+    print("\nConfiguración completada.")
 
 if __name__ == "__main__":
     main()

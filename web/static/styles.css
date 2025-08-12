@@ -790,3 +790,114 @@ header {
     10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
     20%, 40%, 60%, 80% { transform: translateX(5px); }
 }
+
+.absences-container {
+    margin-top: 5px;
+}
+
+.absence-bar {
+    background-color: #ff9800; /* Naranja */
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-bottom: 2px;
+}
+
+/* Estilos para la alternancia de vista del calendario */
+.view-toggle-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.toggle-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.toggle-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.toggle-btn:hover::before {
+    left: 100%;
+}
+
+/* Estilos para la información del día en el calendario */
+.day-info {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.salary-view, .shift-view {
+    font-size: 0.85em;
+    line-height: 1.2;
+}
+
+.shift-info {
+    margin-bottom: 3px;
+    font-size: 0.8em;
+}
+
+.role-code {
+    color: #666;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+.shift-hours {
+    color: #007acc;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+/* Mejorar la presentación del texto de turno libre */
+.shift-view {
+    color: #888;
+    font-style: italic;
+}
+
+/* Asegurar que los enlaces mantengan el color correcto */
+.calendar-table a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.calendar-table a:hover {
+    text-decoration: none;
+}

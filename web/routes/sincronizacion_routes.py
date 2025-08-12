@@ -464,8 +464,18 @@ def insertar_turnos_en_bd(empleado_id, turnos_json):
                 x.get("workingArea", "")
             )
         )
+        
+        # Procesar ausencias
+        full_day_absences = turno.get("fullDayAbsences", [])
+        part_day_absences = turno.get("partDayAbsences", [])
+        all_absences = full_day_absences + part_day_absences
+        
+        # Convertir a JSON
+        shifts_str = json.dumps(sorted_shifts, ensure_ascii=False, sort_keys=True) if sorted_shifts else None
+        absences_str = json.dumps(all_absences, ensure_ascii=False) if all_absences else None
 
-        if not sorted_shifts:
+        # Si no hay turnos ni ausencias, es un día libre
+        if not shifts_str and not absences_str:
             # Desactivar todos los turnos activos para ese día
             execute_query(
                 """
@@ -479,8 +489,8 @@ def insertar_turnos_en_bd(empleado_id, turnos_json):
             # Insertar registro de día libre
             execute_query(
                 """
-                INSERT INTO turnos_empleado (empleado_id, dia, turno, activo, google_event_ids)
-                VALUES (%s, %s, NULL, 1, NULL)
+                INSERT INTO turnos_empleado (empleado_id, dia, turno, ausencias, activo, google_event_ids)
+                VALUES (%s, %s, NULL, NULL, 1, NULL)
                 """,
                 (empleado_id, dia),
                 commit=True
@@ -488,12 +498,10 @@ def insertar_turnos_en_bd(empleado_id, turnos_json):
             actualizados += 1
             continue
 
-        shifts_str = json.dumps(sorted_shifts, ensure_ascii=False, sort_keys=True)
-
         # Verificar si ya existe un turno activo para este usuario y día
         active_turno = execute_query(
             """
-            SELECT id, turno, activo, google_event_ids
+            SELECT id, turno, ausencias, activo, google_event_ids
             FROM turnos_empleado
             WHERE dia = %s AND empleado_id = %s AND activo = 1
             """,
@@ -503,9 +511,13 @@ def insertar_turnos_en_bd(empleado_id, turnos_json):
 
         if active_turno:
             # Si ya existe un turno activo, comparar
-            if active_turno["turno"] is not None and json.dumps(json.loads(active_turno["turno"]), ensure_ascii=False, sort_keys=True) == shifts_str:
+            current_shifts = json.dumps(json.loads(active_turno["turno"]), ensure_ascii=False, sort_keys=True) if active_turno["turno"] else None
+            current_absences = json.dumps(json.loads(active_turno["ausencias"]), ensure_ascii=False) if active_turno["ausencias"] else None
+
+            if current_shifts == shifts_str and current_absences == absences_str:
                 # Turno idéntico, no hacer nada
                 continue
+            
             # Si son diferentes, desactivar todos los turnos activos
             execute_query(
                 """
@@ -520,10 +532,10 @@ def insertar_turnos_en_bd(empleado_id, turnos_json):
         # Insertar el nuevo turno
         execute_query(
             """
-            INSERT INTO turnos_empleado (empleado_id, dia, turno, activo, google_event_ids)
-            VALUES (%s, %s, %s, 1, NULL)
+            INSERT INTO turnos_empleado (empleado_id, dia, turno, ausencias, activo, google_event_ids)
+            VALUES (%s, %s, %s, %s, 1, NULL)
             """,
-            (empleado_id, dia, shifts_str),
+            (empleado_id, dia, shifts_str, absences_str),
             commit=True
         )
         actualizados += 1

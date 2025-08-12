@@ -90,11 +90,9 @@
                                             {% for shift in shifts %}
                                                 {% set start_time = shift.start|replace('Z', '+00:00')|fromisoformat %}
                                                 {% set end_time = shift.end|replace('Z', '+00:00')|fromisoformat %}
-                                                {% set duration = end_time - start_time %}
-                                                {% set hours = (duration.total_seconds() / 3600)|round(1) %}
                                                 <div class="shift-info">
                                                     {{ start_time.strftime('%H:%M') }}-{{ end_time.strftime('%H:%M') }}<br>
-                                                    <span class="shift-hours">{{ hours }}h</span>
+                                                    <span class="role-code">{{ shift.roleCode|default('Turno', true) }}</span>
                                                 </div>
                                             {% endfor %}
                                         {% else %}
@@ -135,30 +133,6 @@
 
 {% block extra_js %}
 <script>
-    // Variable global para controlar el estado de la vista
-    let showingShifts = false;
-
-    // Función para alternar entre vista de sueldo y vista de turno
-    function toggleCalendarView() {
-        const salaryViews = document.querySelectorAll('.salary-view');
-        const shiftViews = document.querySelectorAll('.shift-view');
-        const toggleText = document.getElementById('toggleText');
-        
-        if (showingShifts) {
-            // Cambiar a vista de sueldo
-            salaryViews.forEach(view => view.style.display = 'block');
-            shiftViews.forEach(view => view.style.display = 'none');
-            toggleText.textContent = 'Ver Turnos';
-            showingShifts = false;
-        } else {
-            // Cambiar a vista de turno
-            salaryViews.forEach(view => view.style.display = 'none');
-            shiftViews.forEach(view => view.style.display = 'block');
-            toggleText.textContent = 'Ver Sueldo';
-            showingShifts = true;
-        }
-    }
-
     // Asegurarse de que la verificación de estado de sincronización se inicia
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof checkSyncStatus === 'function') {

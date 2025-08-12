@@ -45,27 +45,6 @@ def create_app():
     # IMPORTANTE: Configurar ProxyFix para manejar headers del proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
-    # Middleware personalizado para manejar el prefijo
-    class PrefixMiddleware:
-        def __init__(self, app, prefix=''):
-            self.app = app
-            self.prefix = prefix
-
-        def __call__(self, environ, start_response):
-            # Si hay X-Forwarded-Prefix, usar ese; si no, usar el configurado
-            forwarded_prefix = environ.get('HTTP_X_FORWARDED_PREFIX', self.prefix)
-            if forwarded_prefix:
-                # Guardar el prefijo en el environ para que Flask lo use
-                environ['SCRIPT_NAME'] = forwarded_prefix
-                # Quitar el prefijo del PATH_INFO si lo tiene
-                path_info = environ.get('PATH_INFO', '')
-                if path_info.startswith(forwarded_prefix):
-                    environ['PATH_INFO'] = path_info[len(forwarded_prefix):] or '/'
-            return self.app(environ, start_response)
-    
-    # Aplicar el middleware
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app, '/south')
-    
     # Configuración de la aplicación
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_key_change_in_production')
     app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -86,6 +65,20 @@ def create_app():
     # Añadir filtro personalizado para month_name
     app.jinja_env.filters['month_name'] = get_month_name
     
+    # Añadir filtro personalizado para fromisoformat
+    def fromisoformat_filter(date_string):
+        """Convierte string ISO formato a datetime"""
+        try:
+            return datetime.fromisoformat(date_string)
+        except ValueError:
+            # Fallback para formato Z
+            if date_string.endswith('Z'):
+                date_string = date_string[:-1] + '+00:00'
+                return datetime.fromisoformat(date_string)
+            raise
+    
+    app.jinja_env.filters['fromisoformat'] = fromisoformat_filter
+    
     # Añadir funciones de utilidad a los templates
     app.jinja_env.globals.update(
         now=datetime.now,
@@ -93,7 +86,7 @@ def create_app():
         date=datetime.date
     )
     
-    # Registrar blueprints SIN prefijos (Nginx maneja el /south/)
+    # Registrar blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(usuario_bp, url_prefix='/usuario')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -144,15 +137,15 @@ def create_app():
                 with app.app_context():
                     try:
                         auto_sync_manager.start()
-                        app.logger.info("🚀 Sistema de sincronización automática iniciado")
+                        app.logger.info("Sistema de sincronización automática iniciado")
                     except Exception as e:
-                        app.logger.error(f"❌ Error al iniciar auto-sync: {e}")
+                        app.logger.error(f"Error al iniciar auto-sync: {e}")
             
             thread = threading.Thread(target=start_auto_sync_delayed, daemon=True)
             thread.start()
             
         except Exception as e:
-            app.logger.error(f"❌ Error al configurar auto-sync: {e}")
+            app.logger.error(f"Error al configurar auto-sync: {e}")
     
     # Inicializar auto-sync después de crear la app
     init_auto_sync()
@@ -162,7 +155,7 @@ def create_app():
         """Limpia el auto-sync al cerrar la aplicación"""
         global auto_sync_manager
         if auto_sync_manager and auto_sync_manager.running:
-            app.logger.info("🛑 Deteniendo auto-sync...")
+            app.logger.info("Deteniendo auto-sync...")
             auto_sync_manager.stop()
     
     atexit.register(cleanup_auto_sync)

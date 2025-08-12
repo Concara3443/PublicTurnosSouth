@@ -2,15 +2,16 @@ from flask import render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 import calendar
+import json
 from routes import calendario_bp
-from database import get_turnos_by_month, get_db_connection
+from database import get_db_connection
 from calculadora import compute_salaries_for_days
 from config import MONTH_TRANSLATION
 
 # Función auxiliar para obtener turnos de un usuario específico
 def get_turnos_by_month_and_user(year, month, empleado_id):
     """
-    Obtiene todos los turnos de un usuario para un mes, ajustando para incluir semanas completas
+    Obtiene todos los turnos y ausencias de un usuario para un mes, ajustando para incluir semanas completas
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -30,15 +31,12 @@ def get_turnos_by_month_and_user(year, month, empleado_id):
     try:
         # Buscar en la tabla turnos_empleado
         cursor.execute("""
-            SELECT id, dia, turno
+            SELECT id, dia, turno, ausencias
             FROM turnos_empleado
             WHERE dia >= %s AND dia <= %s AND activo=1 AND empleado_id=%s
         """, (adjusted_start_date.strftime("%Y-%m-%d"), adjusted_end_date.strftime("%Y-%m-%d"), empleado_id))
         
         rows = cursor.fetchall()
-        
-        # Si no hay resultados, NO devolver turnos del usuario ID 1
-        # Solo devolver los del usuario que está consultando
         
         return rows
     except Exception as e:
@@ -101,19 +99,30 @@ def calendar_view(year, month):
         daily_map[day_str] = {
             "total": s["total"], 
             "shifts": shifts,
-            "hours": total_hours
+            "hours": total_hours,
+            "absences": []
         }
         
         # Verificar si hay al menos un turno
         if shifts:
             has_any_shifts = True
-    
+            
+    # Procesar ausencias
+    for row in rows:
+        if row['ausencias']:
+            day_str = row['dia'].strftime("%Y-%m-%d")
+            absences = json.loads(row['ausencias'])
+            if day_str in daily_map:
+                daily_map[day_str]["absences"].extend(absences)
+            else:
+                daily_map[day_str] = {"total": 0, "shifts": [], "hours": 0, "absences": absences}
+
     # Agregar días sin turno
     current = adjusted_start_date
     while current <= adjusted_end_date:
         ds = current.strftime("%Y-%m-%d")
         if ds not in daily_map:
-            daily_map[ds] = {"total": 0, "shifts": [], "hours": 0}
+            daily_map[ds] = {"total": 0, "shifts": [], "hours": 0, "absences": []}
         current += timedelta(days=1)
     
     # Calcular totales semanales de salario y horas
