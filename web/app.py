@@ -38,7 +38,7 @@ def create_app():
     static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
     
     # Crear aplicación con configuración explícita
-    app = Flask(__name__, 
+    app = Flask(__name__,
                 template_folder=template_dir,
                 static_folder=static_dir)
     
@@ -49,6 +49,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_key_change_in_production')
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['APPLICATION_ROOT'] = '/south'
     
     # Inicializar Flask-Login
     login_manager = LoginManager()
@@ -79,14 +80,25 @@ def create_app():
     
     app.jinja_env.filters['fromisoformat'] = fromisoformat_filter
     
+    # Función personalizada para URLs con prefijo
+    def url_for_with_prefix(endpoint, **values):
+        if endpoint == 'static':
+            return '/south/static/' + values.get('filename', '')
+        # Para todos los demás endpoints, agregar el prefijo /south
+        original_url = url_for(endpoint, **values)
+        if original_url.startswith('/'):
+            return '/south' + original_url
+        return original_url
+
     # Añadir funciones de utilidad a los templates
     app.jinja_env.globals.update(
         now=datetime.now,
         calendar=calendar,
-        date=datetime.date
+        date=datetime.date,
+        url_for=url_for_with_prefix
     )
     
-    # Registrar blueprints
+    # Registrar blueprints SIN PREFIJO - nginx maneja el prefijo
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(usuario_bp, url_prefix='/usuario')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -106,7 +118,7 @@ def create_app():
     @app.route('/favicon.ico')
     def favicon():
         return app.send_static_file('favicon.ico')
-    
+
     # Ruta raíz que redirecciona al calendario
     @app.route('/')
     def index():
