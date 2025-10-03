@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 import bcrypt
 from models.usuario import Usuario
+from sandbox import sandbox_mode
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -47,6 +48,7 @@ def listar_usuarios():
 
 @admin_bp.route('/usuarios/nuevo', methods=['GET', 'POST'])
 @admin_required
+@sandbox_mode
 def nuevo_usuario():
     """Crea un nuevo usuario"""
     if request.method == 'POST':
@@ -85,6 +87,7 @@ def nuevo_usuario():
 
 @admin_bp.route('/usuarios/editar/<int:usuario_id>', methods=['GET', 'POST'])
 @admin_required
+@sandbox_mode
 def editar_usuario(usuario_id):
     """Edita un usuario existente"""
     # Obtener usuario
@@ -147,6 +150,7 @@ def editar_usuario(usuario_id):
 
 @admin_bp.route('/usuarios/cambiar-estado/<int:usuario_id>', methods=['POST'])
 @admin_required
+@sandbox_mode
 def cambiar_estado(usuario_id):
     """Cambia el estado de un usuario (activo/inactivo)"""
     # Verificar que no sea el usuario actual
@@ -185,6 +189,7 @@ def cambiar_estado(usuario_id):
 
 @admin_bp.route('/usuarios/eliminar/<int:usuario_id>', methods=['POST'])
 @admin_required
+@sandbox_mode
 def eliminar_usuario(usuario_id):
     """Elimina un usuario del sistema"""
     # Verificar que no sea el usuario actual
@@ -216,6 +221,7 @@ def whitelist():
 
 @admin_bp.route('/whitelist/agregar', methods=['GET', 'POST'])
 @admin_required
+@sandbox_mode
 def agregar_whitelist():
     """Agrega un empleado a la lista blanca"""
     if request.method == 'POST':
@@ -247,6 +253,7 @@ def agregar_whitelist():
 
 @admin_bp.route('/whitelist/eliminar/<numero_empleado>', methods=['POST'])
 @admin_required
+@sandbox_mode
 def eliminar_whitelist(numero_empleado):
     """Elimina un empleado de la lista blanca"""
     if EmpleadoWhitelist.eliminar(numero_empleado):
