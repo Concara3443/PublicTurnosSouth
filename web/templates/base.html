@@ -8,6 +8,18 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    {% if current_user.is_authenticated and current_user.es_demo %}
+    <div class="demo-banner">
+        <div class="demo-banner-content">
+            <span class="demo-banner-icon">📱</span>
+            <span class="demo-banner-text">
+                <strong>MODO DEMO</strong> - Explorando funcionalidades sin persistencia de datos
+            </span>
+            <a href="{{ url_for('auth.logout') }}" class="demo-banner-exit">Salir del Demo</a>
+        </div>
+    </div>
+    {% endif %}
+
     <header>
         <div class="header-container">
             <div class="logo">
@@ -15,7 +27,12 @@
             </div>
                 <div class="user-menu">
                     {% if current_user.is_authenticated %}
-                        <span class="welcome-text">Bienvenido, {{ current_user.nombre_completo }}</span>
+                        <span class="welcome-text">
+                            Bienvenido, {{ current_user.nombre_completo }}
+                            {% if current_user.es_demo %}
+                            <span class="demo-badge">DEMO</span>
+                            {% endif %}
+                        </span>
                         {% if current_user.es_admin %}
                         <a href="{{ url_for('admin.panel') }}" class="header-link">Panel Admin</a>
                         {% endif %}

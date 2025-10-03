@@ -9,13 +9,17 @@ from calculadora import compute_salaries_for_days
 from config import MONTH_TRANSLATION
 
 # Función auxiliar para obtener turnos de un usuario específico
-def get_turnos_by_month_and_user(year, month, empleado_id):
+def get_turnos_by_month_and_user(year, month, empleado_id, vinculado_a_empleado_id=None):
     """
     Obtiene todos los turnos y ausencias de un usuario para un mes, ajustando para incluir semanas completas
+    Si vinculado_a_empleado_id está presente, obtiene los turnos de ese usuario en su lugar
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
+    # Si el usuario está vinculado a otro, usar el ID del usuario vinculado
+    empleado_id_efectivo = vinculado_a_empleado_id if vinculado_a_empleado_id else empleado_id
+
     start_date = date(year, month, 1)
     if month == 12:
         end_date = date(year+1, 1, 1) - timedelta(days=1)
@@ -34,10 +38,10 @@ def get_turnos_by_month_and_user(year, month, empleado_id):
             SELECT id, dia, turno, ausencias
             FROM turnos_empleado
             WHERE dia >= %s AND dia <= %s AND activo=1 AND empleado_id=%s
-        """, (adjusted_start_date.strftime("%Y-%m-%d"), adjusted_end_date.strftime("%Y-%m-%d"), empleado_id))
-        
+        """, (adjusted_start_date.strftime("%Y-%m-%d"), adjusted_end_date.strftime("%Y-%m-%d"), empleado_id_efectivo))
+
         rows = cursor.fetchall()
-        
+
         return rows
     except Exception as e:
         print(f"Error al obtener turnos: {e}")
@@ -61,8 +65,8 @@ def calendar_view(year, month):
     """
     Vista de calendario mensual con semanas completas
     """
-    # Obtener turnos del usuario actual
-    rows = get_turnos_by_month_and_user(year, month, current_user.id)
+    # Obtener turnos del usuario actual (o del usuario vinculado si es modo demo)
+    rows = get_turnos_by_month_and_user(year, month, current_user.id, current_user.vinculado_a_empleado_id)
     
     # Obtener el primer y último día del mes
     start_date = date(year, month, 1)

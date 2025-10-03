@@ -6,9 +6,10 @@ from database import execute_query, get_db_connection, db_error_handler
 class Usuario(UserMixin):
     """Clase para representar un usuario del sistema"""
     
-    def __init__(self, id=None, numero_empleado=None, nombre_completo=None, 
-                 email=None, password_hash=None, fecha_creacion=None, 
-                 ultimo_acceso=None, activo=True, es_admin=False):
+    def __init__(self, id=None, numero_empleado=None, nombre_completo=None,
+                 email=None, password_hash=None, fecha_creacion=None,
+                 ultimo_acceso=None, activo=True, es_admin=False, es_demo=False,
+                 vinculado_a_empleado_id=None):
         self.id = id
         self.numero_empleado = numero_empleado
         self.nombre_completo = nombre_completo
@@ -18,6 +19,8 @@ class Usuario(UserMixin):
         self.ultimo_acceso = ultimo_acceso
         self.activo = activo
         self.es_admin = es_admin
+        self.es_demo = es_demo
+        self.vinculado_a_empleado_id = vinculado_a_empleado_id
     
     def get_id(self):
         """Método requerido por Flask-Login"""
@@ -43,14 +46,14 @@ class Usuario(UserMixin):
     def obtener_por_id(user_id):
         """Recupera un usuario por su ID"""
         query = """
-            SELECT id, numero_empleado, nombre_completo, email, 
-                   password_hash, fecha_creacion, ultimo_acceso, 
-                   activo, es_admin
+            SELECT id, numero_empleado, nombre_completo, email,
+                   password_hash, fecha_creacion, ultimo_acceso,
+                   activo, es_admin, es_demo, vinculado_a_empleado_id
             FROM empleados
             WHERE id = %s
         """
         result = execute_query(query, (user_id,), fetchone=True)
-        
+
         if result:
             return Usuario(
                 id=result['id'],
@@ -61,7 +64,9 @@ class Usuario(UserMixin):
                 fecha_creacion=result['fecha_creacion'],
                 ultimo_acceso=result['ultimo_acceso'],
                 activo=result['activo'],
-                es_admin=result['es_admin']
+                es_admin=result['es_admin'],
+                es_demo=result.get('es_demo', False),
+                vinculado_a_empleado_id=result.get('vinculado_a_empleado_id')
             )
         return None
     
@@ -70,14 +75,14 @@ class Usuario(UserMixin):
     def obtener_por_numero_empleado(numero_empleado):
         """Recupera un usuario por su número de empleado"""
         query = """
-            SELECT id, numero_empleado, nombre_completo, email, 
-                   password_hash, fecha_creacion, ultimo_acceso, 
-                   activo, es_admin
+            SELECT id, numero_empleado, nombre_completo, email,
+                   password_hash, fecha_creacion, ultimo_acceso,
+                   activo, es_admin, es_demo, vinculado_a_empleado_id
             FROM empleados
             WHERE numero_empleado = %s
         """
         result = execute_query(query, (numero_empleado,), fetchone=True)
-        
+
         if result:
             return Usuario(
                 id=result['id'],
@@ -88,24 +93,28 @@ class Usuario(UserMixin):
                 fecha_creacion=result['fecha_creacion'],
                 ultimo_acceso=result['ultimo_acceso'],
                 activo=result['activo'],
-                es_admin=result['es_admin']
+                es_admin=result['es_admin'],
+                es_demo=result.get('es_demo', False),
+                vinculado_a_empleado_id=result.get('vinculado_a_empleado_id')
             )
         return None
     
     @staticmethod
     @db_error_handler()
-    def crear(numero_empleado, nombre_completo, password, email=None, es_admin=False):
+    def crear(numero_empleado, nombre_completo, password, email=None, es_admin=False,
+              es_demo=False, vinculado_a_empleado_id=None):
         """Crea un nuevo usuario en la base de datos"""
         # Generar hash de la contraseña
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        
+
         query = """
-            INSERT INTO empleados (numero_empleado, nombre_completo, email, 
-                                 password_hash, es_admin)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO empleados (numero_empleado, nombre_completo, email,
+                                 password_hash, es_admin, es_demo, vinculado_a_empleado_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        execute_query(query, (numero_empleado, nombre_completo, email, password_hash, es_admin), commit=True)
-        
+        execute_query(query, (numero_empleado, nombre_completo, email, password_hash,
+                             es_admin, es_demo, vinculado_a_empleado_id), commit=True)
+
         # Obtener el ID del usuario recién creado
         query = "SELECT LAST_INSERT_ID() as id"
         result = execute_query(query, fetchone=True)
@@ -131,13 +140,14 @@ class Usuario(UserMixin):
     def listar_todos(solo_activos=True):
         """Lista todos los usuarios, opcionalmente filtrando solo los activos"""
         query = """
-            SELECT id, numero_empleado, nombre_completo, email, 
-                   fecha_creacion, ultimo_acceso, activo, es_admin
+            SELECT id, numero_empleado, nombre_completo, email,
+                   fecha_creacion, ultimo_acceso, activo, es_admin,
+                   es_demo, vinculado_a_empleado_id
             FROM empleados
         """
         if solo_activos:
             query += " WHERE activo = 1"
-        
+
         return execute_query(query)
     
     @db_error_handler()

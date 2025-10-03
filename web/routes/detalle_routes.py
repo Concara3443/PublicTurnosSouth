@@ -8,24 +8,30 @@ from calculadora import calcular_nomina_desde_json, compute_salaries_for_days
 from config import DIAS_FESTIVOS, TARIFAS
 
 # Función auxiliar para obtener turnos de usuario específico
-def get_turnos_by_day_and_user(day_str, empleado_id):
+def get_turnos_by_day_and_user(day_str, empleado_id, vinculado_a_empleado_id=None):
     """Obtiene los turnos de un día específico para un usuario específico"""
+    # Si el usuario está vinculado a otro, usar el ID del usuario vinculado
+    empleado_id_efectivo = vinculado_a_empleado_id if vinculado_a_empleado_id else empleado_id
+
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             cursor.execute("""
-                SELECT id, dia, turno 
-                FROM turnos_empleado 
+                SELECT id, dia, turno
+                FROM turnos_empleado
                 WHERE dia = %s AND activo=1 AND empleado_id=%s
-            """, (day_str, empleado_id))
-            
+            """, (day_str, empleado_id_efectivo))
+
             return cursor.fetchall()
     finally:
         conn.close()
 
 # Función auxiliar para obtener turnos en un rango para un usuario específico
-def get_turnos_by_range_and_user(start_date, end_date, empleado_id):
+def get_turnos_by_range_and_user(start_date, end_date, empleado_id, vinculado_a_empleado_id=None):
     """Obtiene los turnos en un rango para un usuario específico"""
+    # Si el usuario está vinculado a otro, usar el ID del usuario vinculado
+    empleado_id_efectivo = vinculado_a_empleado_id if vinculado_a_empleado_id else empleado_id
+
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
@@ -34,7 +40,7 @@ def get_turnos_by_range_and_user(start_date, end_date, empleado_id):
                 start_str = start_date.strftime("%Y-%m-%d")
             else:
                 start_str = start_date
-                
+
             if isinstance(end_date, date):
                 end_str = end_date.strftime("%Y-%m-%d")
             else:
@@ -44,8 +50,8 @@ def get_turnos_by_range_and_user(start_date, end_date, empleado_id):
                 SELECT id, dia, turno
                 FROM turnos_empleado
                 WHERE dia >= %s AND dia <= %s AND activo=1 AND empleado_id=%s
-            """, (start_str, end_str, empleado_id))
-            
+            """, (start_str, end_str, empleado_id_efectivo))
+
             return cursor.fetchall()
     finally:
         conn.close()
@@ -63,9 +69,9 @@ def day_detail(year, month, day):
         return redirect(url_for('calendario.home'))
         
     day_str = day_date.strftime("%Y-%m-%d")
-    
-    # Obtener turnos del usuario actual
-    rows = get_turnos_by_day_and_user(day_str, current_user.id)
+
+    # Obtener turnos del usuario actual (o del usuario vinculado si es modo demo)
+    rows = get_turnos_by_day_and_user(day_str, current_user.id, current_user.vinculado_a_empleado_id)
     
     # Preparar turnos para la plantilla
     turnos_desglose = []
@@ -211,8 +217,8 @@ def rango_view():
         flash("Formato de fecha incorrecto. Use AAAA-MM-DD", "danger")
         return redirect(url_for('detalle.rango_form'))
     
-    # Obtener turnos en el rango de fechas para el usuario actual
-    rows = get_turnos_by_range_and_user(start_date, end_date, current_user.id)
+    # Obtener turnos en el rango de fechas para el usuario actual (o del usuario vinculado si es modo demo)
+    rows = get_turnos_by_range_and_user(start_date, end_date, current_user.id, current_user.vinculado_a_empleado_id)
     
     # Computar salarios
     salary_info = compute_salaries_for_days(rows)

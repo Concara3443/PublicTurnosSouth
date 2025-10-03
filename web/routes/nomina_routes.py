@@ -8,8 +8,11 @@ from database import execute_query, get_turnos_by_range
 from config import MONTH_TRANSLATION, COMPANY_INFO, EMPLOYEE_INFO
 
 # Función auxiliar para obtener turnos en un rango para un usuario específico
-def get_turnos_by_range_and_user(start_date, end_date, empleado_id):
+def get_turnos_by_range_and_user(start_date, end_date, empleado_id, vinculado_a_empleado_id=None):
     """Obtiene los turnos en un rango para un usuario específico"""
+    # Si el usuario está vinculado a otro, usar el ID del usuario vinculado
+    empleado_id_efectivo = vinculado_a_empleado_id if vinculado_a_empleado_id else empleado_id
+
     # Convertir fechas a string si son objetos date
     if isinstance(start_date, date):
         start_str = start_date.strftime("%Y-%m-%d")
@@ -26,9 +29,10 @@ def get_turnos_by_range_and_user(start_date, end_date, empleado_id):
         FROM turnos_empleado
         WHERE dia >= %s AND dia <= %s AND activo=1 AND empleado_id=%s
     """
-    params = (start_str, end_str, empleado_id)
+    params = (start_str, end_str, empleado_id_efectivo)
     return execute_query(query, params)
-def compute_salaries_for_period_by_user(start_date, end_date, empleado_id):
+
+def compute_salaries_for_period_by_user(start_date, end_date, empleado_id, vinculado_a_empleado_id=None):
     """
     Calcula los salarios para un periodo de nómina especificado y un usuario específico
     Con pluses calculados del 16 del mes anterior al 15 del mes actual
@@ -65,7 +69,7 @@ def compute_salaries_for_period_by_user(start_date, end_date, empleado_id):
         current_date += timedelta(days=1)
     
     # Obtener todos los turnos en el rango completo para el usuario específico
-    rows = get_turnos_by_range_and_user(start_date, end_date, empleado_id)
+    rows = get_turnos_by_range_and_user(start_date, end_date, empleado_id, vinculado_a_empleado_id)
     
     # Agrupar turnos por mes
     turnos_por_mes = {}
@@ -196,8 +200,8 @@ def nomina_view():
         flash("Formato de fecha inválido. Use YYYY-MM-DD.", "danger")
         return redirect(url_for("nomina.nomina_form"))
     
-    # Calcular salario para el rango, organizado por mes
-    nomina_data = compute_salaries_for_period_by_user(start_date, end_date, current_user.id)
+    # Calcular salario para el rango, organizado por mes (o del usuario vinculado si es modo demo)
+    nomina_data = compute_salaries_for_period_by_user(start_date, end_date, current_user.id, current_user.vinculado_a_empleado_id)
     
     if not nomina_data:
         context = {

@@ -111,47 +111,80 @@ def register(numero_empleado):
     # Verificar si ya está autenticado
     if current_user.is_authenticated:
         return redirect(url_for('calendario.home'))
-    
+
     # Verificar si está en la lista blanca
     whitelist_info = EmpleadoWhitelist.verificar(numero_empleado)
     if not whitelist_info:
         flash('El número de empleado no está autorizado para registrarse.', 'danger')
         return redirect(url_for('auth.login'))
-    
+
     if request.method == 'POST':
         # Obtener datos del formulario
         nombre_completo = request.form.get('nombre_completo')
         email = request.form.get('email')
         password = request.form.get('password')
         password_confirm = request.form.get('password_confirm')
-        
+
         # Validar datos
         if not all([nombre_completo, password, password_confirm]):
             flash('Todos los campos obligatorios deben completarse.', 'danger')
             return render_template('auth/register.html', numero_empleado=numero_empleado, whitelist_info=whitelist_info)
-        
+
         if password != password_confirm:
             flash('Las contraseñas no coinciden.', 'danger')
             return render_template('auth/register.html', numero_empleado=numero_empleado, whitelist_info=whitelist_info)
-        
+
         # Crear usuario
         try:
             user_id = Usuario.crear(numero_empleado, nombre_completo, password, email)
             if user_id:
                 # Marcar como registrado en la lista blanca
                 EmpleadoWhitelist.marcar_como_registrado(numero_empleado)
-                
+
                 # Iniciar sesión automáticamente
                 usuario = Usuario.obtener_por_id(user_id)
                 login_user(usuario)
-                
+
                 flash('¡Registro completado con éxito! Ahora puedes configurar tus credenciales de SITA.', 'success')
                 return redirect(url_for('usuario.credenciales_sita'))
             else:
                 flash('Error al crear el usuario.', 'danger')
         except Exception as e:
             flash(f'Error al registrar usuario: {str(e)}', 'danger')
-        
+
         return render_template('auth/register.html', numero_empleado=numero_empleado, whitelist_info=whitelist_info)
-    
+
     return render_template('auth/register.html', numero_empleado=numero_empleado, whitelist_info=whitelist_info)
+
+@auth_bp.route('/demo-login')
+def demo_login():
+    """Inicio de sesión automático con usuario demo para portfolio"""
+    # Si ya está autenticado con otro usuario, cerrar sesión primero
+    if current_user.is_authenticated and not current_user.es_demo:
+        logout_user()
+
+    # Si ya está autenticado como demo, redirigir al calendario
+    if current_user.is_authenticated and current_user.es_demo:
+        return redirect(url_for('calendario.home'))
+
+    # Buscar el usuario DEMO
+    usuario_demo = Usuario.obtener_por_numero_empleado('DEMO')
+
+    if not usuario_demo:
+        flash('Usuario demo no encontrado. Por favor, ejecuta el script de configuración.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not usuario_demo.activo:
+        flash('El usuario demo está desactivado.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    # Iniciar sesión con el usuario demo
+    login_user(usuario_demo, remember=False)
+
+    # Actualizar último acceso
+    usuario_demo.actualizar_ultimo_acceso()
+
+    flash('¡Bienvenido al modo demo! Explora todas las funcionalidades sin afectar datos reales.', 'info')
+
+    # Redirigir al calendario
+    return redirect(url_for('calendario.home'))

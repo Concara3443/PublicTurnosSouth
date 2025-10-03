@@ -851,3 +851,114 @@ header {
 .calendar-table a:hover {
     text-decoration: none;
 }
+
+/* ===================================
+   ESTILOS PARA MODO DEMO
+   =================================== */
+
+/* Banner superior del modo demo */
+.demo-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.demo-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.demo-banner-icon {
+    font-size: 1.5em;
+}
+
+.demo-banner-text {
+    font-size: 1em;
+}
+
+.demo-banner-text strong {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.demo-banner-exit {
+    display: inline-block;
+    padding: 6px 16px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 0.9em;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.demo-banner-exit:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+/* Badge DEMO junto al nombre del usuario */
+.demo-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: bold;
+    margin-left: 8px;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Ajustar el body cuando hay banner demo */
+body {
+    margin-top: 0;
+}
+
+/* Responsividad para el banner demo */
+@media (max-width: 768px) {
+    .demo-banner-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .demo-banner-text {
+        font-size: 0.9em;
+    }
+
+    .demo-banner-icon {
+        font-size: 1.2em;
+    }
+}
