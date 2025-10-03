@@ -962,3 +962,80 @@ body {
         font-size: 1.2em;
     }
 }
+
+/* ============================================
+   FOOTER STYLES
+   ============================================ */
+
+.site-footer {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    padding: 30px 20px;
+    margin-top: 50px;
+    border-top: 3px solid #007acc;
+    font-size: 0.9em;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.footer-links {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #34495e;
+}
+
+.footer-link {
+    color: #ecf0f1;
+    text-decoration: none;
+    padding: 8px 15px;
+    display: inline-block;
+    transition: color 0.3s ease, background-color 0.3s ease;
+    border-radius: 3px;
+}
+
+.footer-link:hover {
+    color: #007acc;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.footer-separator {
+    color: #7f8c8d;
+    margin: 0 5px;
+}
+
+.footer-copyright {
+    font-size: 0.85em;
+    color: #95a5a6;
+    margin-top: 15px;
+}
+
+/* Responsividad del footer */
+@media (max-width: 768px) {
+    .site-footer {
+        padding: 20px 15px;
+        margin-top: 30px;
+    }
+
+    .footer-links {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .footer-separator {
+        display: none;
+    }
+
+    .footer-link {
+        display: block;
+        padding: 10px;
+    }
+
+    .footer-copyright {
+        font-size: 0.8em;
+    }
+}

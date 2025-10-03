@@ -17,6 +17,7 @@ from routes.auth_routes import auth_bp
 from routes.usuario_routes import usuario_bp
 from routes.admin_routes import admin_bp
 from routes.sincronizacion_routes import sincronizacion_bp
+from routes.legal_routes import legal_bp
 from models.usuario import Usuario
 
 
@@ -103,6 +104,7 @@ def create_app():
     app.register_blueprint(usuario_bp, url_prefix='/usuario')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(sincronizacion_bp, url_prefix='/sincronizacion')
+    app.register_blueprint(legal_bp)
     app.register_blueprint(calendario_bp)
     app.register_blueprint(nomina_bp)
     app.register_blueprint(detalle_bp)
