@@ -162,7 +162,8 @@ def create_app():
             app.logger.error(f"Error al configurar auto-sync: {e}")
     
     # Inicializar auto-sync después de crear la app
-    init_auto_sync()
+    # DESACTIVADO: La empresa ya no usa SITA, mantener datos actuales como demo
+    # init_auto_sync()
     
     # Registrar función de limpieza al salir
     def cleanup_auto_sync():
